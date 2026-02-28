@@ -104,13 +104,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 labelText: 'Введіть вашу рекламу'
                 ),
             ),
+           ),
+           ElevatedButton(
+            onPressed: _changeText,
+            child: const Icon(Icons.done)
+           )
           ],
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
       ),
     );
   }
