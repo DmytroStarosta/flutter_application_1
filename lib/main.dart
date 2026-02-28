@@ -21,7 +21,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
+  const MyHomePage({required this.title, super.key});
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -39,12 +39,15 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  final TextEditingController controller = TextEditingController();
+  String text = 'Тут може бути ваша реклама';
+  String newText = 'Тут може бути ваша реклама';
 
-  void _incrementCounter() {
+  void _changeText() {
     setState(() {
-      _counter++;
-    });
+      text = newText;
+      controller.clear();
+    }); 
   }
 
   @override
@@ -84,10 +87,22 @@ class _MyHomePageState extends State<MyHomePage> {
           // wireframe for each widget.
           mainAxisAlignment: .center,
           children: [
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+           const Text('Banner:'),
+           Text(text),
+           SizedBox( 
+            width: 400, 
+            height: 200,
+            child: TextField(
+              controller: controller,
+              onChanged: (value) {
+                setState(() {
+                  newText = value;
+                });
+              },
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Введіть вашу рекламу'
+                ),
             ),
           ],
         ),
