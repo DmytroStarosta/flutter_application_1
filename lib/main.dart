@@ -71,7 +71,7 @@ class _MyHomePageState extends State<MyHomePage> {
            ),
            ElevatedButton(
             onPressed: _changeText,
-            child: Icon(Icons.done)
+            child: const Icon(Icons.done)
            )
           ],
         ),
