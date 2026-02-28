@@ -55,7 +55,7 @@ class _MyHomePageState extends State<MyHomePage> {
            Text(text),
            SizedBox( 
             width: 400, 
-            height: 200,
+            height: 70,
             child: TextField(
               controller: controller,
               onChanged: (value) {
