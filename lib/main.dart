@@ -31,11 +31,11 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController controller = TextEditingController();
   String text = 'Тут може бути ваша реклама';
-  String newText = 'Тут може бути ваша реклама';
+  String inputText = 'Тут може бути ваша реклама';
 
   void _changeText() {
     setState(() {
-      text = newText;
+      text = inputText;
       controller.clear();
     }); 
   }
@@ -60,7 +60,7 @@ class _MyHomePageState extends State<MyHomePage> {
               controller: controller,
               onChanged: (value) {
                 setState(() {
-                  newText = value;
+                  inputText = value;
                 });
               },
               decoration: const InputDecoration(
