@@ -13,7 +13,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
@@ -37,11 +37,17 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _changeText() {
     setState(() {
-      if (inputText.trim().isNotEmpty) {
-        text = inputText;
-        currentColor = Color(
-          (Random().nextDouble() * 0xFFFFFF).toInt(),
-        ).withValues(alpha: 1);
+      String trimmedInput = inputText.trim();
+      if (trimmedInput.isNotEmpty) {
+        if (trimmedInput.toLowerCase() == 'reset') {
+          text = 'Тут може бути ваша реклама';
+          currentColor = Colors.deepPurple;
+        } else {
+          text = inputText;
+          currentColor = Color(
+            (Random().nextDouble() * 0xFFFFFF).toInt(),
+          ).withValues(alpha: 1);
+        }
         controller.clear();
         inputText = '';
       }
@@ -57,7 +63,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Center(
         child: Column(
-          mainAxisAlignment: .center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             const Text('Banner:'),
             Text(
