@@ -37,7 +37,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   void _changeText() {
     setState(() {
-      String trimmedInput = inputText.trim();
+      final String trimmedInput = inputText.trim();
       if (trimmedInput.isNotEmpty) {
         if (trimmedInput.toLowerCase() == 'reset') {
           text = 'Тут може бути ваша реклама';
