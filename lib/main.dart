@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 
 void main() {
@@ -12,7 +13,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Flutter Demo',
       theme: ThemeData(
-        colorScheme: .fromSeed(seedColor: Colors.deepPurple),
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
       ),
       home: const MyHomePage(title: 'Flutter Demo Home Page'),
     );
@@ -31,48 +32,75 @@ class MyHomePage extends StatefulWidget {
 class _MyHomePageState extends State<MyHomePage> {
   final TextEditingController controller = TextEditingController();
   String text = 'Тут може бути ваша реклама';
-  String inputText = 'Тут може бути ваша реклама';
+  String inputText = '';
+  Color currentColor = Colors.deepPurple;
 
   void _changeText() {
     setState(() {
-      text = inputText;
-      controller.clear();
-    }); 
+      final String trimmedInput = inputText.trim();
+      if (trimmedInput.isNotEmpty) {
+        if (trimmedInput.toLowerCase() == 'reset') {
+          text = 'Тут може бути ваша реклама';
+          currentColor = Colors.deepPurple;
+        } else {
+          text = inputText;
+          currentColor = Color(
+            (Random().nextDouble() * 0xFFFFFF).toInt(),
+          ).withValues(alpha: 1);
+        }
+        controller.clear();
+        inputText = '';
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+        backgroundColor: currentColor,
         title: Text(widget.title),
       ),
       body: Center(
         child: Column(
-          mainAxisAlignment: .center,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-           const Text('Banner:'),
-           Text(text),
-           SizedBox( 
-            width: 400, 
-            height: 70,
-            child: TextField(
-              controller: controller,
-              onChanged: (value) {
-                setState(() {
-                  inputText = value;
-                });
-              },
-              decoration: const InputDecoration(
-                border: OutlineInputBorder(),
-                labelText: 'Введіть вашу рекламу'
-                ),
+            const Text('Banner:'),
+            Text(
+              text,
+              style: TextStyle(
+                color: currentColor,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
             ),
-           ),
-           ElevatedButton(
-            onPressed: _changeText,
-            child: const Icon(Icons.done)
-           )
+            const SizedBox(height: 20),
+            SizedBox(
+              width: 400,
+              height: 70,
+              child: TextField(
+                controller: controller,
+                onChanged: (value) {
+                  setState(() {
+                    inputText = value;
+                  });
+                },
+                decoration: const InputDecoration(
+                  border: OutlineInputBorder(),
+                  labelText: 'Введіть вашу рекламу',
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: _changeText,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: currentColor,
+              ),
+              child: const Icon(
+                Icons.done,
+                color: Colors.white,
+              ),
+            )
           ],
         ),
       ),
