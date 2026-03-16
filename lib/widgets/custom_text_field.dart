@@ -6,7 +6,9 @@ class CustomTextField extends StatefulWidget {
   final bool isPassword;
 
   const CustomTextField({
-    required this.label, required this.icon, super.key,
+    required this.label,
+    required this.icon,
+    super.key,
     this.isPassword = false,
   });
 
@@ -32,8 +34,9 @@ class _CustomTextFieldState extends State<CustomTextField> {
         decoration: InputDecoration(
           filled: true,
           fillColor: Colors.white.withValues(alpha: 0.9),
-          labelText: widget.label,
-          labelStyle: const TextStyle(color: Color(0xFF079AF7)),
+          hintText: widget.label,
+          hintStyle: const TextStyle(color: Color(0xFF079AF7)),
+          floatingLabelBehavior: FloatingLabelBehavior.never,
           prefixIcon: Icon(widget.icon, color: const Color(0xFF079AF7)),
           suffixIcon: widget.isPassword
               ? IconButton(
@@ -49,11 +52,11 @@ class _CustomTextFieldState extends State<CustomTextField> {
                 )
               : null,
           border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(25),
             borderSide: BorderSide.none,
           ),
           focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(25),
             borderSide: const BorderSide(color: Colors.white, width: 2),
           ),
         ),
