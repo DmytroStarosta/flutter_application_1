@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/pages/login_page.dart';
 import 'package:flutter_application_1/pages/registration_page.dart';
+import 'package:flutter_application_1/pages/home_page.dart';
 
 void main() {
   runApp(const SmartMeteoApp());
@@ -22,7 +23,7 @@ class SmartMeteoApp extends StatelessWidget {
       routes: {
         '/login': (context) => const LoginScreen(),
         '/register': (context) => const RegisterScreen(), 
-        '/home': (context) => const LoginScreen(),
+        '/home': (context) => const HomeScreen(),
         '/profile': (context) => const LoginScreen(),
       },
     );
