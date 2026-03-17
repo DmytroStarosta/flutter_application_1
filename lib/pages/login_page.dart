@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import 'package:flutter_application_1/widgets/custom_button.dart';
 import 'package:flutter_application_1/widgets/custom_text_field.dart';
 
 class LoginScreen extends StatelessWidget {
@@ -14,10 +16,7 @@ class LoginScreen extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF00B8FC),
-              Color(0xFF079AF7),
-            ],
+            colors: [Color(0xFF00B8FC), Color(0xFF079AF7)],
           ),
         ),
         child: Center(
@@ -29,15 +28,15 @@ class LoginScreen extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(
-                    Icons.wb_sunny_outlined, 
-                    size: 80, 
+                    Icons.wb_sunny_outlined,
+                    size: 80,
                     color: Colors.white,
                   ),
                   const SizedBox(height: 20),
                   const Text(
                     'Meteostation',
                     style: TextStyle(
-                      fontSize: 28, 
+                      fontSize: 28,
                       fontWeight: FontWeight.bold,
                       color: Colors.white,
                     ),
@@ -45,23 +44,14 @@ class LoginScreen extends StatelessWidget {
                   const SizedBox(height: 40),
                   const CustomTextField(label: 'E-mail', icon: Icons.email),
                   const CustomTextField(
-                    label: 'Password', 
-                    icon: Icons.lock, 
+                    label: 'Password',
+                    icon: Icons.lock,
                     isPassword: true,
                   ),
                   const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: () => Navigator.pushNamed(context, '/home'),
-                      child: const Text('Login'),
-                    ),
+                  CustomButton(
+                    text: 'Login',
+                    onPressed: () => Navigator.pushNamed(context, '/home'),
                   ),
                   TextButton(
                     onPressed: () => Navigator.pushNamed(context, '/register'),

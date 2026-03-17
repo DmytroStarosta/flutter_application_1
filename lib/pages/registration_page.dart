@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/widgets/custom_button.dart';
 import 'package:flutter_application_1/widgets/custom_text_field.dart';
 
 class RegisterScreen extends StatelessWidget {
@@ -29,7 +30,11 @@ class RegisterScreen extends StatelessWidget {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Icon(Icons.person_add_outlined, size: 80, color: Colors.white),
+                  const Icon(
+                    Icons.person_add_outlined,
+                    size: 80,
+                    color: Colors.white,
+                  ),
                   const SizedBox(height: 20),
                   const Text(
                     'Create Account',
@@ -48,21 +53,12 @@ class RegisterScreen extends StatelessWidget {
                     isPassword: true,
                   ),
                   const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 50,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      onPressed: () => Navigator.pushNamed(context, '/home'),
-                      child: const Text('Register'),
-                    ),
+                  CustomButton(
+                    text: 'Register',
+                    onPressed: () => Navigator.pushNamed(context, '/login'),
                   ),
                   TextButton(
-                    onPressed: () => Navigator.pop(context),
+                    onPressed: () => Navigator.pushNamed(context, '/login'),
                     child: const Text(
                       'Already have an account? Login',
                       style: TextStyle(color: Colors.white70),
