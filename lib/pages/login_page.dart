@@ -1,10 +1,34 @@
 import 'package:flutter/material.dart';
-
 import 'package:flutter_application_1/widgets/custom_button.dart';
 import 'package:flutter_application_1/widgets/custom_text_field.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  void _handleLogin() async {
+    // ignore: lines_longer_than_80_chars
+    if (_emailController.text == 'admin@lpnu.ua' && _passwordController.text == '1111') {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool('isLoggedIn', true);
+
+      if (mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Invalid credentials')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,16 +66,21 @@ class LoginScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 40),
-                  const CustomTextField(label: 'E-mail', icon: Icons.email),
-                  const CustomTextField(
+                  CustomTextField(
+                    label: 'E-mail',
+                    icon: Icons.email,
+                    controller: _emailController,
+                  ),
+                  CustomTextField(
                     label: 'Password',
                     icon: Icons.lock,
                     isPassword: true,
+                    controller: _passwordController,
                   ),
                   const SizedBox(height: 24),
                   CustomButton(
                     text: 'Login',
-                    onPressed: () => Navigator.pushNamed(context, '/home'),
+                    onPressed: _handleLogin,
                   ),
                   TextButton(
                     onPressed: () => Navigator.pushNamed(context, '/register'),

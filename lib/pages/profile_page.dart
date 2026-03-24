@@ -1,8 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/widgets/custom_button.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
+
+  void _handleLogout(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('isLoggedIn', false);
+
+    if (context.mounted) {
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/login',
+        (route) => false,
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,11 +69,7 @@ class ProfileScreen extends StatelessWidget {
                   CustomButton(
                     text: 'Log Out',
                     isPrimary: false,
-                    onPressed: () => Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      '/login',
-                      (route) => false,
-                    ),
+                    onPressed: () => _handleLogout(context),
                   ),
                 ],
               ),

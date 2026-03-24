@@ -2,8 +2,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/widgets/custom_button.dart';
 import 'package:flutter_application_1/widgets/custom_text_field.dart';
 
-class RegisterScreen extends StatelessWidget {
+class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
+
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -45,12 +62,21 @@ class RegisterScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 40),
-                  const CustomTextField(label: 'Full Name', icon: Icons.person),
-                  const CustomTextField(label: 'E-mail', icon: Icons.email),
-                  const CustomTextField(
+                  CustomTextField(
+                    label: 'Full Name',
+                    icon: Icons.person,
+                    controller: _nameController,
+                  ),
+                  CustomTextField(
+                    label: 'E-mail',
+                    icon: Icons.email,
+                    controller: _emailController,
+                  ),
+                  CustomTextField(
                     label: 'Password',
                     icon: Icons.lock,
                     isPassword: true,
+                    controller: _passwordController,
                   ),
                   const SizedBox(height: 24),
                   CustomButton(
