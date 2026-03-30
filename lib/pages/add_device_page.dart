@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/domain/validators.dart';
 import 'package:flutter_application_1/widgets/custom_button.dart';
 import 'package:flutter_application_1/widgets/custom_text_field.dart';
 
@@ -13,6 +14,8 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
 
+  final _formKey = GlobalKey<FormState>();
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -21,7 +24,9 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
   }
 
   void _handleAddDevice() {
-    Navigator.pop(context); 
+    if (_formKey.currentState!.validate()) {
+      Navigator.pop(context);
+    }
   }
 
   @override
@@ -53,33 +58,43 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.router_outlined,
-                    size: 80,
-                    color: Colors.white,
-                  ),
-                  const SizedBox(height: 40),
-                  CustomTextField(
-                    label: 'Device Name',
-                    icon: Icons.devices,
-                    controller: _nameController,
-                  ),
-                  CustomTextField(
-                    label: 'Location',
-                    icon: Icons.location_on,
-                    controller: _locationController,
-                  ),
-                  const SizedBox(height: 24),
-                  CustomButton(
-                    text: 'Connect Device',
-                    onPressed: _handleAddDevice,
-                  ),
-                ],
+            child: Form(
+              key: _formKey,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 400),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.router_outlined,
+                      size: 80,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(height: 40),
+                    CustomTextField(
+                      label: 'Device Name',
+                      icon: Icons.devices,
+                      controller: _nameController,
+                      validator: AppValidators.validateName,
+                    ),
+                    CustomTextField(
+                      label: 'Location',
+                      icon: Icons.location_on,
+                      controller: _locationController,
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Location cannot be empty';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    CustomButton(
+                      text: 'Connect Device',
+                      onPressed: _handleAddDevice,
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

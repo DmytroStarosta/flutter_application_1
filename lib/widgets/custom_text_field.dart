@@ -10,7 +10,7 @@ class CustomTextField extends StatefulWidget {
     required this.label,
     required this.icon,
     required this.controller,
-    super.key,
+    required String? Function(String? value) validator, super.key,
     this.isPassword = false,
   });
 
