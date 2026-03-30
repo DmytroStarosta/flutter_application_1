@@ -13,7 +13,6 @@ class AddDeviceScreen extends StatefulWidget {
 class _AddDeviceScreenState extends State<AddDeviceScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
-
   final _formKey = GlobalKey<FormState>();
 
   @override

@@ -17,18 +17,15 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
-  // Використовуємо той самий репозиторій
   final AuthRepository _authRepository = LocalAuthRepository();
 
   void _handleLogin() async {
     if (_formKey.currentState!.validate()) {
-      // Викликаємо логіку звірки даних (Пункт №4)
       final bool success = await _authRepository.login(
         _emailController.text.trim(),
         _passwordController.text,
       );
 
-      // Перевірка на async gap
       if (!mounted) return;
 
       if (success) {

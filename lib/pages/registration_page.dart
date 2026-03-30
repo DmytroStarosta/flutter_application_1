@@ -17,7 +17,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-
+  
   final _formKey = GlobalKey<FormState>();
 
   final AuthRepository _authRepository = LocalAuthRepository();
@@ -42,9 +42,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
       if (!mounted) return;
 
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Registration Successful!')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Registration Successful!')),
+      );
 
       Navigator.pushReplacementNamed(context, '/login');
     }
@@ -75,17 +75,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Icon(
-                      Icons.person_add_outlined,
-                      size: 80,
-                      color: Colors.white,
+                      Icons.person_add_outlined, 
+                      size: 80, 
+                      color: Colors.white
                     ),
                     const SizedBox(height: 20),
                     const Text(
                       'Create Account',
                       style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                        fontSize: 28, 
+                        fontWeight: FontWeight.bold, 
+                        color: Colors.white
                       ),
                     ),
                     const SizedBox(height: 40),
@@ -109,7 +109,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       validator: AppValidators.validatePassword,
                     ),
                     const SizedBox(height: 24),
-                    CustomButton(text: 'Register', onPressed: _handleRegister),
+                    CustomButton(
+                      text: 'Register',
+                      onPressed: _handleRegister,
+                    ),
                     TextButton(
                       onPressed: () => Navigator.pushNamed(context, '/login'),
                       child: const Text(
