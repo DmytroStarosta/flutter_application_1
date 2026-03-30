@@ -17,9 +17,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = 
+      TextEditingController();
   
   final _formKey = GlobalKey<FormState>();
-
   final AuthRepository _authRepository = LocalAuthRepository();
 
   @override
@@ -27,6 +28,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -107,6 +109,17 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       isPassword: true,
                       controller: _passwordController,
                       validator: AppValidators.validatePassword,
+                    ),
+                    CustomTextField(
+                      label: 'Confirm Password',
+                      icon: Icons.lock_clock_outlined,
+                      isPassword: true,
+                      controller: _confirmPasswordController,
+                      validator: (value) => 
+                          AppValidators.validateConfirmPassword(
+                            value, 
+                            _passwordController.text,
+                          ),
                     ),
                     const SizedBox(height: 24),
                     CustomButton(
