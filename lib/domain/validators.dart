@@ -3,8 +3,8 @@ class AppValidators {
     if (value == null || value.isEmpty) {
       return 'Name cannot be empty';
     }
-    if (RegExp(r'[0-9]').hasMatch(value)) {
-      return 'Name should not contain numbers';
+    if (RegExp(r'[#*/]').hasMatch(value)) {
+      return 'Special characters (#, *, /) are not allowed';
     }
     return null;
   }
