@@ -6,18 +6,27 @@ import 'package:flutter_application_1/domain/validators.dart';
 import 'package:flutter_application_1/widgets/custom_button.dart';
 import 'package:flutter_application_1/widgets/custom_text_field.dart';
 
-class AddDeviceScreen extends StatefulWidget {
-  const AddDeviceScreen({super.key});
+class EditDeviceScreen extends StatefulWidget {
+  final DeviceModel device;
+
+  const EditDeviceScreen({required this.device, super.key});
 
   @override
-  State<AddDeviceScreen> createState() => _AddDeviceScreenState();
+  State<EditDeviceScreen> createState() => _EditDeviceScreenState();
 }
 
-class _AddDeviceScreenState extends State<AddDeviceScreen> {
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _locationController = TextEditingController();
+class _EditDeviceScreenState extends State<EditDeviceScreen> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _locationController;
   final _formKey = GlobalKey<FormState>();
   final DeviceRepository _deviceRepository = LocalDeviceRepository();
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController(text: widget.device.name);
+    _locationController = TextEditingController(text: widget.device.location);
+  }
 
   @override
   void dispose() {
@@ -26,22 +35,25 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
     super.dispose();
   }
 
-  Future<void> _handleAddDevice() async {
+  Future<void> _handleUpdate() async {
     if (_formKey.currentState!.validate()) {
-      final newDevice = DeviceModel(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
+      final updatedDevice = DeviceModel(
+        id: widget.device.id,
         name: _nameController.text.trim(),
         location: _locationController.text.trim(),
-        temperature: 24.5,
-        humidity: 45,
-        pressure: 1013,
+        temperature: widget.device.temperature,
+        humidity: widget.device.humidity,
+        pressure: widget.device.pressure,
       );
 
-      await _deviceRepository.addDevice(newDevice);
-
-      if (!mounted) return;
-      Navigator.pop(context);
+      await _deviceRepository.updateDevice(updatedDevice);
+      if (mounted) Navigator.pop(context);
     }
+  }
+
+  Future<void> _handleDelete() async {
+    await _deviceRepository.deleteDevice(widget.device.id);
+    if (mounted) Navigator.pop(context);
   }
 
   @override
@@ -50,14 +62,17 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
         title: const Text(
-          'Add New Device',
+          'Edit Device',
           style: TextStyle(color: Colors.white),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_forever, color: Colors.white),
+            onPressed: _handleDelete,
+          ),
+        ],
       ),
       extendBodyBehindAppBar: true,
       body: Container(
@@ -78,10 +93,9 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 400),
                 child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Icon(
-                      Icons.router_outlined,
+                      Icons.settings_suggest,
                       size: 80,
                       color: Colors.white,
                     ),
@@ -96,17 +110,20 @@ class _AddDeviceScreenState extends State<AddDeviceScreen> {
                       label: 'Location',
                       icon: Icons.location_on,
                       controller: _locationController,
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Location cannot be empty';
-                        }
-                        return null;
-                      },
+                      validator: (v) => v!.isEmpty ? 'Enter location' : null,
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 32),
                     CustomButton(
-                      text: 'Connect Device',
-                      onPressed: _handleAddDevice,
+                      text: 'Save Changes',
+                      onPressed: _handleUpdate,
+                    ),
+                    const SizedBox(height: 16),
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(color: Colors.white70),
+                      ),
                     ),
                   ],
                 ),

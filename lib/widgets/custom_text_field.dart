@@ -5,13 +5,15 @@ class CustomTextField extends StatefulWidget {
   final IconData icon;
   final bool isPassword;
   final TextEditingController controller;
+  final String? Function(String?)? validator;
 
   const CustomTextField({
     required this.label,
     required this.icon,
     required this.controller,
-    super.key,
+    required this.validator,
     this.isPassword = false,
+    super.key,
   });
 
   @override
@@ -31,9 +33,11 @@ class _CustomTextFieldState extends State<CustomTextField> {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TextField(
+      child: TextFormField(
         controller: widget.controller,
         obscureText: _obscureText,
+        validator: widget.validator,
+        style: const TextStyle(color: Color(0xFF079AF7)),
         decoration: InputDecoration(
           filled: true,
           fillColor: Colors.white.withValues(alpha: 0.9),
@@ -54,6 +58,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                   },
                 )
               : null,
+          errorStyle: const TextStyle(color: Colors.redAccent, height: 0.8),
           border: OutlineInputBorder(
             borderRadius: BorderRadius.circular(25),
             borderSide: BorderSide.none,
@@ -61,6 +66,14 @@ class _CustomTextFieldState extends State<CustomTextField> {
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(25),
             borderSide: const BorderSide(color: Colors.white, width: 2),
+          ),
+          errorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(25),
+            borderSide: const BorderSide(color: Colors.redAccent),
+          ),
+          focusedErrorBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(25),
+            borderSide: const BorderSide(color: Colors.redAccent, width: 2),
           ),
         ),
       ),

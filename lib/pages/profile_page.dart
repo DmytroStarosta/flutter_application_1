@@ -1,21 +1,81 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/data/models/user_model.dart';
+import 'package:flutter_application_1/data/repositories/auth_repository.dart';
+import 'package:flutter_application_1/data/repositories/local_auth_repository.dart';
 import 'package:flutter_application_1/widgets/custom_button.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
 
-  void _handleLogout(BuildContext context) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('isLoggedIn', false);
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
 
-    if (context.mounted) {
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        '/login',
-        (route) => false,
-      );
-    }
+class _ProfileScreenState extends State<ProfileScreen> {
+  final AuthRepository _authRepository = LocalAuthRepository();
+  UserModel? _user;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    final user = await _authRepository.getUserData();
+    if (!mounted) return;
+    setState(() {
+      _user = user;
+    });
+  }
+
+  Future<void> _editName() async {
+    if (_user == null) return;
+    final controller = TextEditingController(text: _user!.fullName);
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Edit Name'),
+        content: TextField(
+          controller: controller,
+          decoration: const InputDecoration(hintText: 'Enter new name'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (controller.text.isNotEmpty && _user != null) {
+                final updatedUser = UserModel(
+                  fullName: controller.text.trim(),
+                  email: _user!.email,
+                  password: _user!.password,
+                );
+
+                await _authRepository.register(updatedUser);
+                await _loadUserData();
+
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                }
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleLogout() async {
+    await _authRepository.logout();
+    
+    if (!mounted) return;
+    
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
   @override
@@ -25,10 +85,7 @@ class ProfileScreen extends StatelessWidget {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: Container(
         width: double.infinity,
@@ -41,40 +98,65 @@ class ProfileScreen extends StatelessWidget {
           ),
         ),
         child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 400),
-              child: Column(
-                children: [
-                  const CircleAvatar(
-                    radius: 60,
-                    backgroundColor: Colors.white24,
-                    child: Icon(Icons.person, size: 80, color: Colors.white),
-                  ),
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Taras Shevchenko',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
+          child: _user == null
+              ? const CircularProgressIndicator(color: Colors.white)
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 400),
+                    child: Column(
+                      children: [
+                        const CircleAvatar(
+                          radius: 60,
+                          backgroundColor: Colors.white24,
+                          child: Icon(
+                            Icons.person,
+                            size: 80,
+                            color: Colors.white,
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                _user?.fullName ?? 'User',
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(
+                                Icons.edit,
+                                color: Colors.white70,
+                                size: 20,
+                              ),
+                              onPressed: _editName,
+                            ),
+                          ],
+                        ),
+                        Text(
+                          _user?.email ?? '',
+                          style: const TextStyle(
+                            color: Colors.white70,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 40),
+                        _buildOption(Icons.settings, 'Settings'),
+                        _buildOption(Icons.notifications, 'Notifications'),
+                        _buildOption(Icons.history, 'Sensor History'),
+                        const SizedBox(height: 40),
+                        CustomButton(text: 'Log Out', onPressed: _handleLogout),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 40),
-                  _buildOption(Icons.settings, 'Settings'),
-                  _buildOption(Icons.notifications, 'Notifications'),
-                  _buildOption(Icons.history, 'Sensor History'),
-                  const SizedBox(height: 40),
-                  CustomButton(
-                    text: 'Log Out',
-                    isPrimary: false,
-                    onPressed: () => _handleLogout(context),
-                  ),
-                ],
-              ),
-            ),
-          ),
+                ),
         ),
       ),
     );

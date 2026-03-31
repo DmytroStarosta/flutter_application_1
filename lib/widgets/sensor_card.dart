@@ -37,7 +37,7 @@ class SensorCard extends StatelessWidget {
             '$value$unit',
             style: const TextStyle(
               color: Colors.white,
-              fontSize: 24,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
