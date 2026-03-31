@@ -30,7 +30,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _editName() async {
-    final controller = TextEditingController(text: _user?.fullName);
+    if (_user == null) return;
+    final controller = TextEditingController(text: _user!.fullName);
 
     await showDialog<void>(
       context: context,
@@ -49,16 +50,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
             onPressed: () async {
               if (controller.text.isNotEmpty && _user != null) {
                 final updatedUser = UserModel(
-                  fullName: controller.text,
+                  fullName: controller.text.trim(),
                   email: _user!.email,
                   password: _user!.password,
                 );
                 await _authRepository.register(updatedUser);
                 await _loadUserData();
-                
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
+
+                if (!mounted) return;
+
+                Navigator.pop(context);
               }
             },
             child: const Text('Save'),
@@ -70,9 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _handleLogout() async {
     await _authRepository.logout();
-    
     if (!mounted) return;
-    
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
@@ -117,12 +116,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text(
-                              _user?.fullName ?? 'User',
-                              style: const TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+                            Flexible(
+                              child: Text(
+                                _user?.fullName ?? 'User',
+                                style: const TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                             IconButton(

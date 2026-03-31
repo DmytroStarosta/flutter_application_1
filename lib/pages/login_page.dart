@@ -16,7 +16,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-
   final AuthRepository _authRepository = LocalAuthRepository();
 
   void _handleLogin() async {

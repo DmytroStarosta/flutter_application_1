@@ -9,7 +9,7 @@ class UserModel {
     required this.password,
   });
 
-  Map<String, String> toMap() {
+  Map<String, dynamic> toJson() {
     return {
       'fullName': fullName,
       'email': email,
@@ -17,11 +17,11 @@ class UserModel {
     };
   }
 
-  factory UserModel.fromMap(Map<String, dynamic> map) {
+  factory UserModel.fromJson(Map<String, dynamic> json) {
     return UserModel(
-      fullName: (map['fullName'] as String?) ?? '',
-      email: (map['email'] as String?) ?? '',
-      password: (map['password'] as String?) ?? '',
+      fullName: (json['fullName'] as String?) ?? '',
+      email: (json['email'] as String?) ?? '',
+      password: (json['password'] as String?) ?? '',
     );
   }
 }

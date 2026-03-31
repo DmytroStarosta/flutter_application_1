@@ -1,44 +1,77 @@
+import 'dart:convert';
+
 import 'package:flutter_application_1/data/models/user_model.dart';
 import 'package:flutter_application_1/data/repositories/auth_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalAuthRepository implements AuthRepository {
-  static const String _nameKey = 'user_name';
-  static const String _emailKey = 'user_email';
-  static const String _passKey = 'user_password';
+  static const String _usersKey = 'registered_users_list';
+  static const String _currentUserEmailKey = 'user_email';
 
   @override
   Future<void> register(UserModel user) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_nameKey, user.fullName);
-    await prefs.setString(_emailKey, user.email);
-    await prefs.setString(_passKey, user.password);
+    final String? usersJson = prefs.getString(_usersKey);
+    List<UserModel> users = [];
+    
+    if (usersJson != null) {
+      final List<dynamic> decoded = jsonDecode(usersJson) as List<dynamic>;
+      users = decoded.map<UserModel>((item) {
+        return UserModel.fromJson(item as Map<String, dynamic>);
+      }).toList();
+    }
+
+    users.removeWhere((u) => u.email == user.email);
+    users.add(user);
+    
+    final String encoded = jsonEncode(users.map((u) => u.toJson()).toList());
+    await prefs.setString(_usersKey, encoded);
   }
 
   @override
   Future<bool> login(String email, String password) async {
     final prefs = await SharedPreferences.getInstance();
-    final savedEmail = prefs.getString(_emailKey);
-    final savedPassword = prefs.getString(_passKey);
+    final String? usersJson = prefs.getString(_usersKey);
 
-    return savedEmail == email && savedPassword == password;
+    if (usersJson == null) return false;
+
+    final List<dynamic> decoded = jsonDecode(usersJson) as List<dynamic>;
+    final List<UserModel> users = decoded.map<UserModel>((item) {
+      return UserModel.fromJson(item as Map<String, dynamic>);
+    }).toList();
+
+    final bool canLogin = users.any((u) => u.email == email && u.password == password);
+
+    if (canLogin) {
+      await prefs.setString(_currentUserEmailKey, email);
+      return true;
+    }
+    return false;
   }
 
   @override
   Future<UserModel?> getUserData() async {
     final prefs = await SharedPreferences.getInstance();
-    final name = prefs.getString(_nameKey);
-    final email = prefs.getString(_emailKey);
+    final String? currentEmail = prefs.getString(_currentUserEmailKey);
+    final String? usersJson = prefs.getString(_usersKey);
 
-    if (name != null && email != null) {
-      return UserModel(fullName: name, email: email, password: '');
+    if (currentEmail == null || usersJson == null) return null;
+
+    final List<dynamic> decoded = jsonDecode(usersJson) as List<dynamic>;
+    final List<UserModel> users = decoded.map<UserModel>((item) {
+      return UserModel.fromJson(item as Map<String, dynamic>);
+    }).toList();
+
+    try {
+      return users.firstWhere((u) => u.email == currentEmail);
+    } catch (e) {
+      return null;
     }
-    return null;
   }
 
   @override
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
+    await prefs.remove(_currentUserEmailKey);
   }
 }
