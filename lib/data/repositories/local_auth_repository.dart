@@ -40,7 +40,9 @@ class LocalAuthRepository implements AuthRepository {
       return UserModel.fromJson(item as Map<String, dynamic>);
     }).toList();
 
-    final bool canLogin = users.any((u) => u.email == email && u.password == password);
+    final bool canLogin = users.any(
+      (u) => u.email == email && u.password == password
+      );
 
     if (canLogin) {
       await prefs.setString(_currentUserEmailKey, email);

@@ -35,7 +35,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     await showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Edit Name'),
         content: TextField(
           controller: controller,
@@ -43,7 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           TextButton(
@@ -54,12 +54,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   email: _user!.email,
                   password: _user!.password,
                 );
+
                 await _authRepository.register(updatedUser);
                 await _loadUserData();
 
-                if (!mounted) return;
-
-                Navigator.pop(context);
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                }
               }
             },
             child: const Text('Save'),
@@ -71,7 +72,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _handleLogout() async {
     await _authRepository.logout();
+    
     if (!mounted) return;
+    
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
