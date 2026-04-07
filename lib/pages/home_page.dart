@@ -29,7 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _refreshDevices();
-    _mqttService.connect(); // Підключаємося до MQTT при старті
+    _mqttService.connect();
   }
 
   Future<void> _refreshDevices() async {
@@ -65,7 +65,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return StreamBuilder<List<ConnectivityResult>>(
       stream: _connectivityService.connectivityStream,
-      initialData: const [ConnectivityResult.none],
+      initialData: const [ConnectivityResult.wifi],
       builder: (context, snapshot) {
         final results = snapshot.data;
         final bool isOffline = results == null ||
@@ -208,20 +208,19 @@ class _HomeScreenState extends State<HomeScreen> {
     return StreamBuilder<String>(
       stream: _mqttService.sensorStream,
       builder: (context, mqttSnapshot) {
-        // Значення за замовчуванням з локальної бази
         String temp = device?.temperature.toString() ?? '--';
         String hum = device?.humidity.toString() ?? '--';
 
-        // Якщо прийшли нові дані по MQTT, парсимо JSON
         if (mqttSnapshot.hasData) {
           try {
-           final Map<String, dynamic> data = 
-              jsonDecode(mqttSnapshot.data!) as Map<String, dynamic>;
-            if (data.containsKey('temperature')) {
-              temp = data['temperature'].toString();
-            }
-            if (data.containsKey('humidity')) {
-              hum = data['humidity'].toString();
+            final dynamic decoded = jsonDecode(mqttSnapshot.data!);
+            if (decoded is Map<String, dynamic>) {
+              if (decoded.containsKey('temperature')) {
+                temp = decoded['temperature'].toString();
+              }
+              if (decoded.containsKey('humidity')) {
+                hum = decoded['humidity'].toString();
+              }
             }
           } catch (e) {
             debugPrint('Error parsing MQTT JSON: $e');

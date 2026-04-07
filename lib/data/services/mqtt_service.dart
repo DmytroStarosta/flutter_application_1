@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
@@ -13,13 +12,31 @@ class MqttService {
   final _dataController = StreamController<String>.broadcast();
   Stream<String> get sensorStream => _dataController.stream;
 
-  Future<void> connect() async {
-    if (client?.connectionStatus?.state == MqttConnectionState.connected) {
-      return;
-    }
+  void publish(String topic, String message) {
+    final bool isConnected = 
+        client?.connectionStatus?.state == MqttConnectionState.connected;
 
-    final String clientId =
-        'flutter_weather_${DateTime.now().millisecondsSinceEpoch}';
+    if (isConnected) {
+      final builder = MqttClientPayloadBuilder();
+      builder.addString(message);
+      client!.publishMessage(
+        topic, 
+        MqttQos.atMostOnce, 
+        builder.payload!,
+      );
+      debugPrint('MQTT: Published to $topic');
+    } else {
+      debugPrint('MQTT: Cannot publish, not connected');
+    }
+  }
+
+  Future<void> connect() async {
+    final bool isConnected = 
+        client?.connectionStatus?.state == MqttConnectionState.connected;
+    if (isConnected) return;
+
+    final String timeId = DateTime.now().millisecondsSinceEpoch.toString();
+    final String clientId = 'flutter_weather_$timeId';
 
     client = MqttServerClient('broker.hivemq.com', clientId);
     client!.port = 1883;
@@ -27,8 +44,7 @@ class MqttService {
     client!.logging(on: false);
 
     client!.onDisconnected = () => debugPrint('MQTT: Disconnected');
-    client!.onConnected = () => debugPrint('MQTT: Connected to HiveMQ');
-    client!.onSubscribed = (topic) => debugPrint('MQTT: Subscribed to $topic');
+    client!.onConnected = () => debugPrint('MQTT: Connected');
 
     final connMessage = MqttConnectMessage()
         .withClientIdentifier(clientId)
@@ -38,22 +54,15 @@ class MqttService {
 
     try {
       await client!.connect().timeout(const Duration(seconds: 5));
-    } on SocketException catch (e) {
-      debugPrint('MQTT Socket Error: ${e.message}');
-      _cleanup();
-      return;
-    } on TimeoutException {
-      debugPrint('MQTT Connection Timeout');
-      _cleanup();
-      return;
     } catch (e) {
-      debugPrint('MQTT Error: $e');
+      debugPrint('MQTT error: $e');
       _cleanup();
       return;
     }
 
     if (client?.connectionStatus?.state == MqttConnectionState.connected) {
       client!.subscribe('weather/data', MqttQos.atMostOnce);
+      client!.subscribe('weather/config', MqttQos.atMostOnce);
 
       client!.updates!.listen(
         (List<MqttReceivedMessage<MqttMessage>> messages) {
@@ -63,18 +72,11 @@ class MqttService {
           );
           _dataController.add(payload);
         },
-        onError: (Object error) => debugPrint('MQTT Stream Error: $error'),
-        cancelOnError: false,
+        onError: (Object err) => debugPrint('MQTT Stream Error: $err'),
       );
     }
   }
 
-  void _cleanup() {
-    client?.disconnect();
-    debugPrint('MQTT: Cleanup performed after failed connection.');
-  }
-
-  void disconnect() {
-    client?.disconnect();
-  }
+  void _cleanup() => client?.disconnect();
+  void disconnect() => client?.disconnect();
 }
