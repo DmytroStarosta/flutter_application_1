@@ -1,9 +1,11 @@
+import 'dart:convert';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/data/models/device_model.dart';
 import 'package:flutter_application_1/data/repositories/device_repository.dart';
 import 'package:flutter_application_1/data/repositories/local_device_repository.dart';
 import 'package:flutter_application_1/data/services/conectivity_service.dart';
+import 'package:flutter_application_1/data/services/mqtt_service.dart';
 import 'package:flutter_application_1/pages/edit_device.dart';
 import 'package:flutter_application_1/widgets/device_button.dart';
 import 'package:flutter_application_1/widgets/sensor_card.dart';
@@ -18,6 +20,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final DeviceRepository _deviceRepository = LocalDeviceRepository();
   final ConnectivityService _connectivityService = ConnectivityService();
+  final MqttService _mqttService = MqttService();
+
   List<DeviceModel> _devices = [];
   int _selectedIndex = 0;
 
@@ -25,6 +29,7 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     _refreshDevices();
+    _mqttService.connect(); // Підключаємося до MQTT при старті
   }
 
   Future<void> _refreshDevices() async {
@@ -60,12 +65,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return StreamBuilder<List<ConnectivityResult>>(
       stream: _connectivityService.connectivityStream,
+      initialData: const [ConnectivityResult.none],
       builder: (context, snapshot) {
         final results = snapshot.data;
-        final bool isOffline = results?.contains(
-              ConnectivityResult.none,
-            ) ??
-            false;
+        final bool isOffline = results == null ||
+            results.contains(ConnectivityResult.none);
 
         final currentDevice = _devices.isNotEmpty 
             ? _devices[_selectedIndex] 
@@ -187,9 +191,7 @@ class _HomeScreenState extends State<HomeScreen> {
             return DeviceButton(
               name: '+ Add New',
               isActive: false,
-              onTap: isOffline 
-                  ? null 
-                  : _navigateToAddDevice,
+              onTap: isOffline ? null : _navigateToAddDevice,
             );
           }
           return DeviceButton(
@@ -203,40 +205,65 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildSensorGrid(int count, bool isOffline, DeviceModel? device) {
-    return Expanded(
-      child: GridView.count(
-        crossAxisCount: count,
-        crossAxisSpacing: 16,
-        mainAxisSpacing: 16,
-        children: [
-          SensorCard(
-            title: 'Temperature',
-            value: device?.temperature.toString() ?? '--',
-            unit: '°C',
-            icon: Icons.thermostat,
+    return StreamBuilder<String>(
+      stream: _mqttService.sensorStream,
+      builder: (context, mqttSnapshot) {
+        // Значення за замовчуванням з локальної бази
+        String temp = device?.temperature.toString() ?? '--';
+        String hum = device?.humidity.toString() ?? '--';
+
+        // Якщо прийшли нові дані по MQTT, парсимо JSON
+        if (mqttSnapshot.hasData) {
+          try {
+           final Map<String, dynamic> data = 
+              jsonDecode(mqttSnapshot.data!) as Map<String, dynamic>;
+            if (data.containsKey('temperature')) {
+              temp = data['temperature'].toString();
+            }
+            if (data.containsKey('humidity')) {
+              hum = data['humidity'].toString();
+            }
+          } catch (e) {
+            debugPrint('Error parsing MQTT JSON: $e');
+          }
+        }
+
+        return Expanded(
+          child: GridView.count(
+            crossAxisCount: count,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+            children: [
+              SensorCard(
+                title: 'Temperature',
+                value: temp,
+                unit: '°C',
+                icon: Icons.thermostat,
+              ),
+              SensorCard(
+                title: 'Humidity',
+                value: hum,
+                unit: '%',
+                icon: Icons.water_drop,
+              ),
+              SensorCard(
+                title: 'Pressure',
+                value: device?.pressure.toString() ?? '--',
+                unit: ' hPa',
+                icon: Icons.speed,
+              ),
+              SensorCard(
+                title: 'Status',
+                value: device != null 
+                    ? (isOffline ? 'Offline' : 'Online') 
+                    : '--',
+                unit: '',
+                icon: isOffline ? Icons.cloud_off : Icons.cloud_done,
+              ),
+            ],
           ),
-          SensorCard(
-            title: 'Humidity',
-            value: device?.humidity.toString() ?? '--',
-            unit: '%',
-            icon: Icons.water_drop,
-          ),
-          SensorCard(
-            title: 'Pressure',
-            value: device?.pressure.toString() ?? '--',
-            unit: ' hPa',
-            icon: Icons.speed,
-          ),
-          SensorCard(
-            title: 'Status',
-            value: device != null 
-                ? (isOffline ? 'Offline' : 'Online') 
-                : '--',
-            unit: '',
-            icon: isOffline ? Icons.cloud_off : Icons.cloud_done,
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
