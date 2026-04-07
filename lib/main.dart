@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/data/models/device.model.dart';
+import 'package:flutter_application_1/data/models/device_model.dart';
 import 'package:flutter_application_1/pages/add_device_page.dart';
 import 'package:flutter_application_1/pages/edit_device.dart';
 import 'package:flutter_application_1/pages/home_page.dart';
 import 'package:flutter_application_1/pages/login_page.dart';
 import 'package:flutter_application_1/pages/profile_page.dart';
 import 'package:flutter_application_1/pages/registration_page.dart';
+import 'package:flutter_application_1/widgets/check_connection.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 void main() async {
@@ -27,6 +28,9 @@ class SmartMeteoApp extends StatelessWidget {
     return MaterialApp(
       title: 'Smart Meteo Station',
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return CheckConnection(child: child ?? const SizedBox());
+      },
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF00B8FC)),
         useMaterial3: true,

@@ -1,7 +1,9 @@
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/data/models/user_model.dart';
 import 'package:flutter_application_1/data/repositories/auth_repository.dart';
 import 'package:flutter_application_1/data/repositories/local_auth_repository.dart';
+import 'package:flutter_application_1/data/services/conectivity_service.dart';
 import 'package:flutter_application_1/widgets/custom_button.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -13,6 +15,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final AuthRepository _authRepository = LocalAuthRepository();
+  final ConnectivityService _connectivityService = ConnectivityService();
   UserModel? _user;
 
   @override
@@ -70,95 +73,138 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  void _handleLogout() async {
-    await _authRepository.logout();
-    
-    if (!mounted) return;
-    
-    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+  void _handleLogout() {
+    showDialog<void>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Logout Confirmation'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              await _authRepository.logout();
+
+              if (!dialogContext.mounted) return;
+              Navigator.pop(dialogContext);
+
+              if (!mounted) return;
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                '/login',
+                (route) => false,
+              );
+            },
+            child: const Text(
+              'Logout',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      extendBodyBehindAppBar: true,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        iconTheme: const IconThemeData(color: Colors.white),
+    return StreamBuilder<List<ConnectivityResult>>(
+      stream: _connectivityService.connectivityStream,
+      initialData: const [ConnectivityResult.none],
+      builder: (context, snapshot) {
+        final results = snapshot.data;
+        final bool isOffline = results == null ||
+            results.isEmpty ||
+            results.contains(ConnectivityResult.none);
+
+        return Scaffold(
+          extendBodyBehindAppBar: true,
+          appBar: AppBar(
+            backgroundColor: Colors.transparent,
+            elevation: 0,
+            iconTheme: const IconThemeData(color: Colors.white),
+          ),
+          body: Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Color(0xFF00B8FC), Color(0xFF079AF7)],
+              ),
+            ),
+            child: Center(
+              child: _user == null
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : _buildProfileContent(isOffline),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildProfileContent(bool isOffline) {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(24),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: Column(
+          children: [
+            const CircleAvatar(
+              radius: 60,
+              backgroundColor: Colors.white24,
+              child: Icon(Icons.person, size: 80, color: Colors.white),
+            ),
+            const SizedBox(height: 24),
+            _buildNameRow(isOffline),
+            const SizedBox(height: 8),
+            Text(
+              _user?.email ?? '',
+              style: const TextStyle(color: Colors.white70, fontSize: 16),
+            ),
+            const SizedBox(height: 40),
+            _buildOption(Icons.settings, 'Settings'),
+            _buildOption(Icons.notifications, 'Notifications'),
+            _buildOption(Icons.history, 'Sensor History'),
+            const SizedBox(height: 40),
+            CustomButton(
+              text: 'Log Out',
+              onPressed: _handleLogout,
+            ),
+          ],
+        ),
       ),
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF00B8FC), Color(0xFF079AF7)],
+    );
+  }
+
+  Widget _buildNameRow(bool isOffline) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Flexible(
+          child: Text(
+            _user?.fullName ?? 'User',
+            style: const TextStyle(
+              fontSize: 28,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+            overflow: TextOverflow.ellipsis,
           ),
         ),
-        child: Center(
-          child: _user == null
-              ? const CircularProgressIndicator(color: Colors.white)
-              : SingleChildScrollView(
-                  padding: const EdgeInsets.all(24),
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 400),
-                    child: Column(
-                      children: [
-                        const CircleAvatar(
-                          radius: 60,
-                          backgroundColor: Colors.white24,
-                          child: Icon(
-                            Icons.person,
-                            size: 80,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Flexible(
-                              child: Text(
-                                _user?.fullName ?? 'User',
-                                style: const TextStyle(
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(
-                                Icons.edit,
-                                color: Colors.white70,
-                                size: 20,
-                              ),
-                              onPressed: _editName,
-                            ),
-                          ],
-                        ),
-                        Text(
-                          _user?.email ?? '',
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 16,
-                          ),
-                        ),
-                        const SizedBox(height: 40),
-                        _buildOption(Icons.settings, 'Settings'),
-                        _buildOption(Icons.notifications, 'Notifications'),
-                        _buildOption(Icons.history, 'Sensor History'),
-                        const SizedBox(height: 40),
-                        CustomButton(text: 'Log Out', onPressed: _handleLogout),
-                      ],
-                    ),
-                  ),
-                ),
+        IconButton(
+          icon: Icon(
+            Icons.edit,
+            color: isOffline ? Colors.white24 : Colors.white70,
+            size: 20,
+          ),
+          onPressed: isOffline ? null : _editName,
         ),
-      ),
+      ],
     );
   }
 

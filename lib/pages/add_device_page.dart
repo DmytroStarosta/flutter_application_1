@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/data/models/device.model.dart';
+import 'package:flutter_application_1/data/models/device_model.dart';
 import 'package:flutter_application_1/data/repositories/device_repository.dart';
 import 'package:flutter_application_1/data/repositories/local_device_repository.dart';
 import 'package:flutter_application_1/domain/validators.dart';
