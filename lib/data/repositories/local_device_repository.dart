@@ -1,5 +1,5 @@
 import 'dart:convert';
-import 'package:flutter_application_1/data/models/device.model.dart';
+import 'package:flutter_application_1/data/models/device_model.dart';
 import 'package:flutter_application_1/data/repositories/device_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 

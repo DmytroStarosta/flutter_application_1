@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_application_1/data/models/user_model.dart';
 import 'package:flutter_application_1/data/repositories/auth_repository.dart';
 import 'package:flutter_application_1/data/repositories/local_auth_repository.dart';
+import 'package:flutter_application_1/data/services/conectivity_service.dart';
 import 'package:flutter_application_1/domain/validators.dart';
 import 'package:flutter_application_1/widgets/custom_button.dart';
 import 'package:flutter_application_1/widgets/custom_text_field.dart';
@@ -22,6 +23,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   final _formKey = GlobalKey<FormState>();
   final AuthRepository _authRepository = LocalAuthRepository();
+  final ConnectivityService _connectivityService = ConnectivityService();
 
   @override
   void dispose() {
@@ -33,6 +35,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   void _handleRegister() async {
+    final bool hasInternet = await _connectivityService.hasConnection();
+
+    if (!mounted) return;
+
+    if (!hasInternet) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Registration requires an internet connection!'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     if (_formKey.currentState!.validate()) {
       final newUser = UserModel(
         fullName: _nameController.text.trim(),
@@ -76,8 +92,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Icon(Icons.person_add_outlined,
-                        size: 80, color: Colors.white),
+                    const Icon(
+                      Icons.person_add_outlined,
+                      size: 80,
+                      color: Colors.white,
+                    ),
                     const SizedBox(height: 20),
                     const Text(
                       'Create Account',
@@ -124,7 +143,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       onPressed: _handleRegister,
                     ),
                     TextButton(
-                      onPressed: () => Navigator.pushNamed(context, '/login'),
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/login');
+                      },
                       child: const Text(
                         'Already have an account? Login',
                         style: TextStyle(color: Colors.white70),
