@@ -1,4 +1,4 @@
-import 'package:flutter_application_1/data/models/device.model.dart';
+import 'package:flutter_application_1/data/models/device_model.dart';
 
 abstract class DeviceRepository {
   Future<List<DeviceModel>> getDevices();

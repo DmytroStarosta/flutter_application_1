@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/data/repositories/auth_repository.dart';
 import 'package:flutter_application_1/data/repositories/local_auth_repository.dart';
+import 'package:flutter_application_1/data/services/conectivity_service.dart';
 import 'package:flutter_application_1/domain/validators.dart';
 import 'package:flutter_application_1/widgets/custom_button.dart';
 import 'package:flutter_application_1/widgets/custom_text_field.dart';
@@ -17,8 +18,22 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   final AuthRepository _authRepository = LocalAuthRepository();
+  final ConnectivityService _connectivityService = ConnectivityService();
 
   void _handleLogin() async {
+    final bool hasInternet = await _connectivityService.hasConnection();
+
+    if (!hasInternet) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cannot login: No internet connection!'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
     if (_formKey.currentState!.validate()) {
       final bool success = await _authRepository.login(
         _emailController.text.trim(),
@@ -32,7 +47,7 @@ class _LoginScreenState extends State<LoginScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Invalid credentials. Check your email or password.'),
+            content: Text('Invalid credentials. Check email or password.'),
             backgroundColor: Colors.redAccent,
           ),
         );

@@ -1,7 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_application_1/data/models/device.model.dart';
+import 'package:flutter_application_1/data/models/device_model.dart';
 import 'package:flutter_application_1/data/repositories/device_repository.dart';
 import 'package:flutter_application_1/data/repositories/local_device_repository.dart';
+import 'package:flutter_application_1/data/services/mqtt_service.dart';
 import 'package:flutter_application_1/domain/validators.dart';
 import 'package:flutter_application_1/widgets/custom_button.dart';
 import 'package:flutter_application_1/widgets/custom_text_field.dart';
@@ -37,16 +39,30 @@ class _EditDeviceScreenState extends State<EditDeviceScreen> {
 
   Future<void> _handleUpdate() async {
     if (_formKey.currentState!.validate()) {
+      final String name = _nameController.text.trim();
+      final String loc = _locationController.text.trim();
+
       final updatedDevice = DeviceModel(
         id: widget.device.id,
-        name: _nameController.text.trim(),
-        location: _locationController.text.trim(),
+        name: name,
+        location: loc,
         temperature: widget.device.temperature,
         humidity: widget.device.humidity,
         pressure: widget.device.pressure,
       );
 
       await _deviceRepository.updateDevice(updatedDevice);
+
+      final Map<String, String> configUpdate = {
+        'name': name,
+        'location': loc,
+      };
+
+      MqttService().publish(
+        'weather/config',
+        jsonEncode(configUpdate),
+      );
+
       if (mounted) Navigator.pop(context);
     }
   }
@@ -110,7 +126,8 @@ class _EditDeviceScreenState extends State<EditDeviceScreen> {
                       label: 'Location',
                       icon: Icons.location_on,
                       controller: _locationController,
-                      validator: (v) => v!.isEmpty ? 'Enter location' : null,
+                      validator: (v) => 
+                          v!.isEmpty ? 'Enter location' : null,
                     ),
                     const SizedBox(height: 32),
                     CustomButton(
