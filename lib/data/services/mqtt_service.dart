@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:mqtt_client/mqtt_client.dart';
 import 'package:mqtt_client/mqtt_server_client.dart';
@@ -13,15 +14,15 @@ class MqttService {
   Stream<String> get sensorStream => _dataController.stream;
 
   void publish(String topic, String message) {
-    final bool isConnected = 
+    final bool isConnected =
         client?.connectionStatus?.state == MqttConnectionState.connected;
 
     if (isConnected) {
       final builder = MqttClientPayloadBuilder();
       builder.addString(message);
       client!.publishMessage(
-        topic, 
-        MqttQos.atMostOnce, 
+        topic,
+        MqttQos.atMostOnce,
         builder.payload!,
       );
       debugPrint('MQTT: Published to $topic');
@@ -30,8 +31,58 @@ class MqttService {
     }
   }
 
+  Future<bool> authenticateDevice(String token) async {
+    final bool isConnected =
+        client?.connectionStatus?.state == MqttConnectionState.connected;
+
+    if (!isConnected) {
+      throw Exception('Network connection is missing');
+    }
+
+    final completer = Completer<bool>();
+
+    client!.subscribe('weather/auth/status', MqttQos.atMostOnce);
+
+    final listener = client!.updates!.listen((messages) {
+      final MqttPublishMessage recMess =
+          messages[0].payload as MqttPublishMessage;
+      final String payload = MqttPublishPayload.bytesToStringAsString(
+        recMess.payload.message,
+      );
+
+      if (messages[0].topic == 'weather/auth/status') {
+        try {
+          final data = jsonDecode(payload);
+          if (data['status'] == 'authorized') {
+            if (!completer.isCompleted) completer.complete(true);
+          } else {
+            if (!completer.isCompleted) completer.complete(false);
+          }
+        } catch (e) {
+          debugPrint('Auth parse error: $e');
+        }
+      }
+    });
+
+    publish('weather/auth', jsonEncode({'token': token}));
+
+    try {
+      final result = await completer.future.timeout(
+        const Duration(seconds: 7),
+      );
+      await listener.cancel();
+      return result;
+    } on TimeoutException {
+      await listener.cancel();
+      throw Exception('Device timeout. Check your key or connection.');
+    } catch (e) {
+      await listener.cancel();
+      rethrow;
+    }
+  }
+
   Future<void> connect() async {
-    final bool isConnected = 
+    final bool isConnected =
         client?.connectionStatus?.state == MqttConnectionState.connected;
     if (isConnected) return;
 
@@ -42,6 +93,7 @@ class MqttService {
     client!.port = 1883;
     client!.keepAlivePeriod = 20;
     client!.logging(on: false);
+    client!.autoReconnect = true;
 
     client!.onDisconnected = () => debugPrint('MQTT: Disconnected');
     client!.onConnected = () => debugPrint('MQTT: Connected');
@@ -53,7 +105,8 @@ class MqttService {
     client!.connectionMessage = connMessage;
 
     try {
-      await client!.connect().timeout(const Duration(seconds: 5));
+      await client!.connect();
+      debugPrint('MQTT: Connection attempt finished');
     } catch (e) {
       debugPrint('MQTT error: $e');
       _cleanup();

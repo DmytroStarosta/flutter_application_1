@@ -24,12 +24,55 @@ class _HomeScreenState extends State<HomeScreen> {
 
   List<DeviceModel> _devices = [];
   int _selectedIndex = 0;
+  bool _isAuthorizing = true;
+  bool _authSuccess = false;
 
   @override
   void initState() {
     super.initState();
     _refreshDevices();
-    _mqttService.connect();
+    _startSession();
+  }
+
+  Future<void> _startSession() async {
+    setState(() => _isAuthorizing = true);
+    try {
+      await _mqttService.connect();
+      const String token = 'key-1';
+      final bool result = await _mqttService.authenticateDevice(token);
+      
+      if (mounted) {
+        setState(() {
+          _authSuccess = result;
+          _isAuthorizing = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isAuthorizing = false);
+        _showAuthError(e.toString());
+      }
+    }
+  }
+
+  void _showAuthError(String message) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Authentication Error'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _startSession();
+            },
+            child: const Text('Retry'),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _refreshDevices() async {
@@ -60,6 +103,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isAuthorizing) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator(color: Colors.white)),
+        backgroundColor: Color(0xFF00B8FC),
+      );
+    }
+
+    if (!_authSuccess) {
+      return const Scaffold(
+        body: Center(child: Text('Access Denied. Check your token.')),
+      );
+    }
+
     final double screenWidth = MediaQuery.of(context).size.width;
     final int crossAxisCount = screenWidth > 600 ? 4 : 2;
 
@@ -215,12 +271,8 @@ class _HomeScreenState extends State<HomeScreen> {
           try {
             final dynamic decoded = jsonDecode(mqttSnapshot.data!);
             if (decoded is Map<String, dynamic>) {
-              if (decoded.containsKey('temperature')) {
-                temp = decoded['temperature'].toString();
-              }
-              if (decoded.containsKey('humidity')) {
-                hum = decoded['humidity'].toString();
-              }
+              temp = decoded['temperature']?.toString() ?? temp;
+              hum = decoded['humidity']?.toString() ?? hum;
             }
           } catch (e) {
             debugPrint('Error parsing MQTT JSON: $e');
