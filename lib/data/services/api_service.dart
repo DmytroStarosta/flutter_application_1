@@ -2,49 +2,47 @@ import 'package:dio/dio.dart';
 import 'package:flutter_application_1/data/models/device_model.dart';
 
 class ApiService {
-  final Dio _dio = Dio(BaseOptions(baseUrl: 'https://my-iot-api.com'));
+  static const String _url = 'https://69e39c803327837a15535926.mockapi.io';
+  final Dio _dio = Dio(BaseOptions(baseUrl: _url));
 
   ApiService() {
-    _dio.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) {
-          const String token = 'my-super-secret-jwt-token-123';
-          
-          options.headers['Authorization'] = 'Bearer $token';
-          
-          return handler.next(options);
-        },
-      ),
-    );
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) {
+        options.headers['Authorization'] = 'Bearer key-vlad-35';
+        return handler.next(options);
+      },
+    ));
   }
 
   Future<Map<String, dynamic>> getUserProfile() async {
     try {
-      await Future<void>.delayed(const Duration(seconds: 2));
-      return {
-        'fullName': 'Dmytro Polytech',
-        'email': 'dmytro.student@lpnu.ua',
-      };
+      final resp = await _dio.get<dynamic>('/users/1');
+      return resp.data as Map<String, dynamic>;
     } catch (e) {
-      throw Exception('Failed to load profile: $e');
+      return {
+        'fullName': 'Vladyslav Student',
+        'email': 'vladyslav@lpnu.ua',
+      };
     }
   }
 
   Future<List<DeviceModel>> fetchRemoteDevices() async {
-    try {
-      await Future<void>.delayed(const Duration(seconds: 2));
-      return [
-        const DeviceModel(
-          id: '1',
-          name: 'ESP32 Main',
-          location: 'Lviv Lab',
-          temperature: 22.5,
-          humidity: 45,
-          pressure: 1013.2,
-        ),
-      ];
-    } catch (e) {
-      throw Exception('Server error: $e');
-    }
+    final resp = await _dio.get<dynamic>('/devices');
+    final list = resp.data as List<dynamic>;
+    return list.map((e) => 
+        DeviceModel.fromMap(e as Map<String, dynamic>)).toList();
+  }
+
+  Future<void> addDevice(DeviceModel device) async {
+    await _dio.post<dynamic>('/devices', data: device.toMap());
+  }
+
+  Future<void> updateDevice(DeviceModel device) async {
+    final path = '/devices/${device.id}';
+    await _dio.put<dynamic>(path, data: device.toMap());
+  }
+
+  Future<void> deleteDevice(String id) async {
+    await _dio.delete<dynamic>('/devices/$id');
   }
 }

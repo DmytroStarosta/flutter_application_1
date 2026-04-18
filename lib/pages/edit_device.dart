@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/data/models/device_model.dart';
 import 'package:flutter_application_1/data/repositories/local_device_repository.dart';
+import 'package:flutter_application_1/data/services/api_service.dart';
 import 'package:flutter_application_1/data/services/mqtt_service.dart';
 import 'package:flutter_application_1/domain/validators.dart';
 import 'package:flutter_application_1/widgets/custom_button.dart';
@@ -17,6 +18,7 @@ class _EditDeviceScreenState extends State<EditDeviceScreen> {
   late final TextEditingController _nCtrl, _lCtrl;
   final _formKey = GlobalKey<FormState>();
   final _repo = LocalDeviceRepository();
+  final _api = ApiService();
 
   @override void initState() {
     super.initState();
@@ -34,10 +36,23 @@ class _EditDeviceScreenState extends State<EditDeviceScreen> {
       humidity: widget.device.humidity,
       pressure: widget.device.pressure,
     );
-    await _repo.updateDevice(updated);
-    final mqttData = {'name': updated.name, 'location': updated.location};
-    MqttService().publish('weather/config', jsonEncode(mqttData));
-    if (mounted) Navigator.pop(context);
+    
+    try {
+      // 1. Оновлюємо в хмарі
+      await _api.updateDevice(updated);
+      // 2. Оновлюємо локально
+      await _repo.updateDevice(updated);
+      
+      final mqttData = {'name': updated.name, 'location': updated.location};
+      MqttService().publish('weather/config', jsonEncode(mqttData));
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      // Якщо немає інету - можна заборонити редагування або видати помилку
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Update failed: No connection')));
+      }
+    }
   }
 
   Future<void> _handleDelete() async {
@@ -49,18 +64,25 @@ class _EditDeviceScreenState extends State<EditDeviceScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancel'),
-          ),
+            child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
-          ),
+            child: const Text('Delete', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
+    
     if (res == true) {
-      await _repo.deleteDevice(widget.device.id);
-      if (mounted) Navigator.pop(context);
+      try {
+        await _api.deleteDevice(widget.device.id);
+        await _repo.deleteDevice(widget.device.id);
+        if (mounted) Navigator.pop(context);
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Delete failed: Server unreachable')));
+        }
+      }
     }
   }
 
