@@ -14,6 +14,27 @@ class ApiService {
     ));
   }
 
+
+  Future<void> registerUser(Map<String, dynamic> userData) async {
+    await _dio.post<dynamic>('/users', data: userData);
+  }
+
+  Future<Map<String, dynamic>?> loginUser(String email, String password) async {
+    try {
+      final resp = await _dio.get<dynamic>('/users');
+      final List<dynamic> users = resp.data as List<dynamic>;
+      
+      for (var u in users) {
+        if (u['email'] == email && u['password'] == password) {
+          return u as Map<String, dynamic>;
+        }
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
+
   Future<Map<String, dynamic>> getUserProfile() async {
     try {
       final resp = await _dio.get<dynamic>('/users/1');

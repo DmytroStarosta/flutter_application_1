@@ -22,7 +22,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override void initState() {
     super.initState();
-    _mqtt.connect(); // Переконуємося, що MQTT підключено
+    _mqtt.connect();
     _devFuture = _sync();
   }
 
@@ -119,7 +119,6 @@ class _HomeScreenState extends State<HomeScreen> {
       String h = dev?.humidity.toString() ?? '--';
 
       if (snap.hasData) {
-        // --- ДІАГНОСТИКА: ДИВИСЬ В КОНСОЛЬ VS CODE ---
         debugPrint('>>> MQTT RECEIVED: ${snap.data}');
         try {
           final data = jsonDecode(snap.data!) as Map<String, dynamic>;
