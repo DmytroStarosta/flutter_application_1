@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/data/models/device_model.dart';
-import 'package:flutter_application_1/data/repositories/device_repository.dart';
 import 'package:flutter_application_1/data/repositories/local_device_repository.dart';
+import 'package:flutter_application_1/data/services/api_service.dart';
 import 'package:flutter_application_1/data/services/conectivity_service.dart';
 import 'package:flutter_application_1/data/services/mqtt_service.dart';
 import 'package:flutter_application_1/pages/edit_device.dart';
@@ -12,309 +12,153 @@ import 'package:flutter_application_1/widgets/sensor_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  @override State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  final DeviceRepository _deviceRepository = LocalDeviceRepository();
-  final ConnectivityService _connectivityService = ConnectivityService();
-  final MqttService _mqttService = MqttService();
+  final _localRepo = LocalDeviceRepository();
+  final _apiService = ApiService();
+  final _connService = ConnectivityService();
+  final _mqttService = MqttService();
+  late Future<List<DeviceModel>> _devFuture;
+  int _selIdx = 0;
+  bool _isAuth = true, _authOk = false;
 
-  List<DeviceModel> _devices = [];
-  int _selectedIndex = 0;
-  bool _isAuthorizing = true;
-  bool _authSuccess = false;
-
-  @override
-  void initState() {
+  @override void initState() {
     super.initState();
-    _refreshDevices();
+    _devFuture = _syncDevices();
     _startSession();
   }
 
+  Future<List<DeviceModel>> _syncDevices() async {
+    try { return await _apiService.fetchRemoteDevices(); }
+    catch (_) { return await _localRepo.getDevices(); }
+  }
+
   Future<void> _startSession() async {
-    setState(() => _isAuthorizing = true);
+    setState(() => _isAuth = true);
     try {
       await _mqttService.connect();
-      const String token = 'key-1';
-      final bool result = await _mqttService.authenticateDevice(token);
-      
-      if (mounted) {
-        setState(() {
-          _authSuccess = result;
-          _isAuthorizing = false;
-        });
-      }
+      final res = await _mqttService.authenticateDevice('key-1');
+      if (mounted) setState(() { _authOk = res; _isAuth = false; });
     } catch (e) {
-      if (mounted) {
-        setState(() => _isAuthorizing = false);
-        _showAuthError(e.toString());
-      }
+      if (mounted) setState(() => _isAuth = false);
+      if (mounted) _showAuthError(e.toString());
     }
   }
 
-  void _showAuthError(String message) {
-    showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        title: const Text('Authentication Error'),
-        content: Text(message),
-        actions: [
+  void _showAuthError(String msg) {
+    showDialog<void>(context: context, barrierDismissible: false,
+      builder: (c) => AlertDialog(title: const Text('Auth Error'),
+        content: Text(msg), actions: [
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _startSession();
-            },
-            child: const Text('Retry'),
-          ),
-        ],
-      ),
-    );
+            onPressed: () { Navigator.pop(c); _startSession(); },
+            child: const Text('Retry'))]));
   }
 
-  Future<void> _refreshDevices() async {
-    final devices = await _deviceRepository.getDevices();
-    if (!mounted) return;
-    setState(() {
-      _devices = devices;
-      if (_selectedIndex >= _devices.length && _devices.isNotEmpty) {
-        _selectedIndex = 0;
-      }
-    });
-  }
+  void _refresh() => setState(() => _devFuture = _syncDevices());
 
-  Future<void> _openEditPage(DeviceModel device) async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute<void>(
-        builder: (context) => EditDeviceScreen(device: device),
-      ),
-    );
-    _refreshDevices();
-  }
-
-  Future<void> _navigateToAddDevice() async {
-    await Navigator.pushNamed(context, '/add_device');
-    _refreshDevices();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    if (_isAuthorizing) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator(color: Colors.white)),
-        backgroundColor: Color(0xFF00B8FC),
-      );
+  @override Widget build(BuildContext context) {
+    if (_isAuth) {
+      return const Scaffold(backgroundColor: Color(0xFF00B8FC),
+      body: Center(child: CircularProgressIndicator(color: Colors.white)));
     }
-
-    if (!_authSuccess) {
-      return const Scaffold(
-        body: Center(child: Text('Access Denied. Check your token.')),
-      );
-    }
-
-    final double screenWidth = MediaQuery.of(context).size.width;
-    final int crossAxisCount = screenWidth > 600 ? 4 : 2;
+    if (!_authOk) return const Scaffold(body: Center(child: Text('Denied')));
 
     return StreamBuilder<List<ConnectivityResult>>(
-      stream: _connectivityService.connectivityStream,
+      stream: _connService.connectivityStream,
       initialData: const [ConnectivityResult.wifi],
-      builder: (context, snapshot) {
-        final results = snapshot.data;
-        final bool isOffline = results == null ||
-            results.contains(ConnectivityResult.none);
+      builder: (ctx, snap) {
+        final isOff = snap.data?.contains(ConnectivityResult.none) ?? true;
+        return Scaffold(extendBodyBehindAppBar: true,
+          appBar: AppBar(title: const Text('Home'), elevation: 0,
+            backgroundColor: Colors.transparent, actions: [
+              IconButton(icon: const Icon(Icons.account_circle, size: 40),
+                onPressed: () => Navigator.pushNamed(
+                  context, '/profile'))]),
+          body: DecoratedBox(
+            decoration: const BoxDecoration(gradient: LinearGradient(
+              colors: [Color(0xFF00B8FC), Color(0xFF079AF7)],
+              begin: Alignment.topCenter, end: Alignment.bottomCenter)),
+            child: SafeArea(child: FutureBuilder<List<DeviceModel>>(
+              future: _devFuture,
+              builder: (ctx, fSnap) {
+                if (fSnap.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator()); }
+                final devs = fSnap.data ?? [];
+                if (_selIdx >= devs.length && devs.isNotEmpty) _selIdx = 0;
+                final dev = devs.isEmpty ? null : devs[_selIdx];
 
-        final currentDevice = _devices.isNotEmpty 
-            ? _devices[_selectedIndex] 
-            : null;
-
-        return Scaffold(
-          extendBodyBehindAppBar: true,
-          appBar: _buildAppBar(),
-          body: Container(
-            width: double.infinity,
-            height: double.infinity,
-            decoration: _buildBackgroundDecoration(),
-            child: SafeArea(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeader(currentDevice),
-                    const SizedBox(height: 32),
-                    _buildMyDevicesTitle(isOffline, currentDevice),
-                    const SizedBox(height: 12),
-                    _buildDeviceSelector(isOffline),
-                    const SizedBox(height: 32),
-                    _buildSensorGrid(crossAxisCount, isOffline, currentDevice),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
-    );
+                return Padding(padding: const EdgeInsets.all(24),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text('Smart meteostation', style: TextStyle(
+                        color: Colors.white, fontSize: 32,
+                        fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 8),
+                      Row(children: [
+                        const Icon(Icons.location_on, color: Colors.white70),
+                        Text(dev?.location ?? 'No devices',
+                          style: const TextStyle(
+                            color: Colors.white70, fontSize: 18))
+                      ]), const SizedBox(height: 32),
+                      Row(children: [
+                        const Text('My Devices', style: TextStyle(
+                          color: Colors.white, fontSize: 20)), const Spacer(),
+                        if (dev != null) IconButton(
+                          icon: Icon(Icons.edit_note,
+                            color: isOff ? Colors.white24 : Colors.white),
+                          onPressed: isOff ? null : () async {
+                            await Navigator.push(context,
+                              MaterialPageRoute<void>(builder: (_) =>
+                                EditDeviceScreen(device: dev)));
+                            _refresh(); })]), const SizedBox(height: 12),
+                      SizedBox(height: 40, child: ListView.builder(
+                        scrollDirection: Axis.horizontal,
+                        itemCount: devs.length + 1,
+                        itemBuilder: (c, i) {
+                          if (i == devs.length) {
+                            return DeviceButton(
+                            name: '+ Add', isActive: false,
+                            onTap: isOff ? null : () async {
+                              await Navigator.pushNamed(
+                                context, '/add_device');
+                              _refresh(); });
+                          }
+                          return DeviceButton(name: devs[i].name,
+                            isActive: _selIdx == i,
+                            onTap: () => setState(() => _selIdx = i));
+                        })), const SizedBox(height: 32),
+                      _buildGrid(dev, isOff)]));
+              }))));});
   }
 
-  AppBar _buildAppBar() {
-    return AppBar(
-      title: const Text('Home'),
-      backgroundColor: Colors.transparent,
-      elevation: 0,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.account_circle, size: 40),
-          onPressed: () => Navigator.pushNamed(context, '/profile'),
-        ),
-      ],
-    );
-  }
-
-  BoxDecoration _buildBackgroundDecoration() {
-    return const BoxDecoration(
-      gradient: LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [Color(0xFF00B8FC), Color(0xFF079AF7)],
-      ),
-    );
-  }
-
-  Widget _buildHeader(DeviceModel? device) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Smart meteostation',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Row(
-          children: [
-            const Icon(Icons.location_on, color: Colors.white70, size: 18),
-            const SizedBox(width: 4),
-            Text(
-              device?.location ?? 'No devices',
-              style: const TextStyle(color: Colors.white70, fontSize: 18),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMyDevicesTitle(bool isOffline, DeviceModel? device) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        const Text(
-          'My Devices',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        if (device != null)
-          IconButton(
-            icon: Icon(
-              Icons.edit_note,
-              color: isOffline ? Colors.white24 : Colors.white,
-            ),
-            onPressed: isOffline ? null : () => _openEditPage(device),
-          ),
-      ],
-    );
-  }
-
-  Widget _buildDeviceSelector(bool isOffline) {
-    return SizedBox(
-      height: 40,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: _devices.length + 1,
-        itemBuilder: (context, index) {
-          if (index == _devices.length) {
-            return DeviceButton(
-              name: '+ Add New',
-              isActive: false,
-              onTap: isOffline ? null : _navigateToAddDevice,
-            );
-          }
-          return DeviceButton(
-            name: _devices[index].name,
-            isActive: _selectedIndex == index,
-            onTap: () => setState(() => _selectedIndex = index),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildSensorGrid(int count, bool isOffline, DeviceModel? device) {
-    return StreamBuilder<String>(
-      stream: _mqttService.sensorStream,
-      builder: (context, mqttSnapshot) {
-        String temp = device?.temperature.toString() ?? '--';
-        String hum = device?.humidity.toString() ?? '--';
-
-        if (mqttSnapshot.hasData) {
+  Widget _buildGrid(DeviceModel? dev, bool isOff) {
+    return StreamBuilder<String>(stream: _mqttService.sensorStream,
+      builder: (ctx, snap) {
+        String temp = dev?.temperature.toString() ?? '--';
+        String hum = dev?.humidity.toString() ?? '--';
+        if (snap.hasData) {
           try {
-            final dynamic decoded = jsonDecode(mqttSnapshot.data!);
-            if (decoded is Map<String, dynamic>) {
-              temp = decoded['temperature']?.toString() ?? temp;
-              hum = decoded['humidity']?.toString() ?? hum;
-            }
-          } catch (e) {
-            debugPrint('Error parsing MQTT JSON: $e');
-          }
+            final d = jsonDecode(snap.data!) as Map<String, dynamic>;
+            temp = d['temperature']?.toString() ?? temp;
+            hum = d['humidity']?.toString() ?? hum;
+          } catch (_) {}
         }
-
-        return Expanded(
-          child: GridView.count(
-            crossAxisCount: count,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            children: [
-              SensorCard(
-                title: 'Temperature',
-                value: temp,
-                unit: '°C',
-                icon: Icons.thermostat,
-              ),
-              SensorCard(
-                title: 'Humidity',
-                value: hum,
-                unit: '%',
-                icon: Icons.water_drop,
-              ),
-              SensorCard(
-                title: 'Pressure',
-                value: device?.pressure.toString() ?? '--',
-                unit: ' hPa',
-                icon: Icons.speed,
-              ),
-              SensorCard(
-                title: 'Status',
-                value: device != null 
-                    ? (isOffline ? 'Offline' : 'Online') 
-                    : '--',
-                unit: '',
-                icon: isOffline ? Icons.cloud_off : Icons.cloud_done,
-              ),
-            ],
-          ),
-        );
-      },
-    );
+        return Expanded(child: GridView.count(
+          crossAxisCount: MediaQuery.of(context).size.width > 600 ? 4 : 2,
+          crossAxisSpacing: 16, mainAxisSpacing: 16, children: [
+            SensorCard(title: 'Temp', value: temp, unit: '°C',
+              icon: Icons.thermostat),
+            SensorCard(title: 'Hum', value: hum, unit: '%',
+              icon: Icons.water_drop),
+            SensorCard(title: 'Press',
+              value: dev?.pressure.toString() ?? '--',
+              unit: ' hPa', icon: Icons.speed),
+            SensorCard(title: 'Status',
+              value: dev != null ? (isOff ? 'Off' : 'On') : '--',
+              unit: '', icon: isOff ? Icons.cloud_off : Icons.cloud_done)
+          ]));});
   }
 }
