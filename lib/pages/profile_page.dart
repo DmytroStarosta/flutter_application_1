@@ -1,8 +1,8 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_application_1/data/models/user_model.dart';
-import 'package:flutter_application_1/data/repositories/auth_repository.dart';
 import 'package:flutter_application_1/data/repositories/local_auth_repository.dart';
+import 'package:flutter_application_1/data/services/api_service.dart';
 import 'package:flutter_application_1/data/services/conectivity_service.dart';
 import 'package:flutter_application_1/widgets/custom_button.dart';
 
@@ -14,56 +14,61 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final AuthRepository _authRepository = LocalAuthRepository();
-  final ConnectivityService _connectivityService = ConnectivityService();
-  UserModel? _user;
+  final LocalAuthRepository _authRepo = LocalAuthRepository();
+  final ConnectivityService _connService = ConnectivityService();
+  final ApiService _apiService = ApiService();
+  late Future<UserModel?> _userFuture;
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
+    _userFuture = _syncUserData();
   }
 
-  Future<void> _loadUserData() async {
-    final user = await _authRepository.getUserData();
-    if (!mounted) return;
-    setState(() {
-      _user = user;
-    });
+  Future<UserModel?> _syncUserData() async {
+    try {
+      final apiData = await _apiService.getUserProfile();
+      final localUser = await _authRepo.getUserData();
+      if (localUser != null) {
+        final updated = UserModel(
+          fullName: apiData['fullName'] as String? ?? localUser.fullName,
+          email: apiData['email'] as String? ?? localUser.email,
+          password: localUser.password,
+        );
+        await _authRepo.register(updated);
+        return updated;
+      }
+    } catch (_) {}
+    return _authRepo.getUserData();
   }
 
-  Future<void> _editName() async {
-    if (_user == null) return;
-    final controller = TextEditingController(text: _user!.fullName);
-
+  Future<void> _editName(UserModel user) async {
+    final ctrl = TextEditingController(text: user.fullName);
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
+      builder: (ctx) => AlertDialog(
         title: const Text('Edit Name'),
         content: TextField(
-          controller: controller,
-          decoration: const InputDecoration(hintText: 'Enter new name'),
+          controller: ctrl,
+          decoration: const InputDecoration(hintText: 'New name'),
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
-              if (controller.text.isNotEmpty && _user != null) {
-                final updatedUser = UserModel(
-                  fullName: controller.text.trim(),
-                  email: _user!.email,
-                  password: _user!.password,
+              if (ctrl.text.isNotEmpty) {
+                await _authRepo.register(
+                  UserModel(
+                    fullName: ctrl.text.trim(),
+                    email: user.email,
+                    password: user.password,
+                  ),
                 );
-
-                await _authRepository.register(updatedUser);
-                await _loadUserData();
-
-                if (dialogContext.mounted) {
-                  Navigator.pop(dialogContext);
-                }
+                setState(() => _userFuture = _authRepo.getUserData());
+                if (ctx.mounted) Navigator.pop(ctx);
               }
             },
             child: const Text('Save'),
@@ -76,32 +81,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
   void _handleLogout() {
     showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Logout Confirmation'),
-        content: const Text('Are you sure you want to log out?'),
+      builder: (ctx) => AlertDialog(
+        title: const Text('Logout'),
+        content: const Text('Are you sure?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
+            onPressed: () => Navigator.pop(ctx),
             child: const Text('Cancel'),
           ),
           TextButton(
             onPressed: () async {
-              await _authRepository.logout();
-
-              if (!dialogContext.mounted) return;
-              Navigator.pop(dialogContext);
-
+              await _authRepo.logout();
               if (!mounted) return;
               Navigator.pushNamedAndRemoveUntil(
                 context,
                 '/login',
-                (route) => false,
+                (r) => false,
               );
             },
-            child: const Text(
-              'Logout',
-              style: TextStyle(color: Colors.redAccent),
-            ),
+            child: const Text('Logout', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -111,13 +109,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<ConnectivityResult>>(
-      stream: _connectivityService.connectivityStream,
+      stream: _connService.connectivityStream,
       initialData: const [ConnectivityResult.none],
       builder: (context, snapshot) {
-        final results = snapshot.data;
-        final bool isOffline = results == null ||
-            results.isEmpty ||
-            results.contains(ConnectivityResult.none);
+        final isOffline =
+            snapshot.data?.contains(ConnectivityResult.none) ?? true;
 
         return Scaffold(
           extendBodyBehindAppBar: true,
@@ -131,15 +127,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
             height: double.infinity,
             decoration: const BoxDecoration(
               gradient: LinearGradient(
+                colors: [Color(0xFF00B8FC), Color(0xFF079AF7)],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
-                colors: [Color(0xFF00B8FC), Color(0xFF079AF7)],
               ),
             ),
-            child: Center(
-              child: _user == null
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : _buildProfileContent(isOffline),
+            child: FutureBuilder<UserModel?>(
+              future: _userFuture,
+              builder: (context, userSnap) {
+                if (userSnap.connectionState == ConnectionState.waiting) {
+                  return const Center(
+                    child: CircularProgressIndicator(color: Colors.white),
+                  );
+                }
+                final user = userSnap.data;
+                if (user == null) {
+                  return const Center(child: Text('Error loading user'));
+                }
+                return _buildProfile(user, isOffline);
+              },
             ),
           ),
         );
@@ -147,11 +153,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildProfileContent(bool isOffline) {
+  Widget _buildProfile(UserModel user, bool isOffline) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 400),
+      child: SafeArea(
         child: Column(
           children: [
             const CircleAvatar(
@@ -160,51 +165,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Icon(Icons.person, size: 80, color: Colors.white),
             ),
             const SizedBox(height: 24),
-            _buildNameRow(isOffline),
-            const SizedBox(height: 8),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(
+                  child: Text(
+                    user.fullName,
+                    style: const TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                IconButton(
+                  icon: Icon(
+                    Icons.edit,
+                    color: isOffline ? Colors.white24 : Colors.white70,
+                  ),
+                  onPressed: isOffline ? null : () => _editName(user),
+                ),
+              ],
+            ),
             Text(
-              _user?.email ?? '',
+              user.email,
               style: const TextStyle(color: Colors.white70, fontSize: 16),
             ),
             const SizedBox(height: 40),
             _buildOption(Icons.settings, 'Settings'),
-            _buildOption(Icons.notifications, 'Notifications'),
             _buildOption(Icons.history, 'Sensor History'),
             const SizedBox(height: 40),
-            CustomButton(
-              text: 'Log Out',
-              onPressed: _handleLogout,
-            ),
+            CustomButton(text: 'Log Out', onPressed: _handleLogout),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildNameRow(bool isOffline) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Flexible(
-          child: Text(
-            _user?.fullName ?? 'User',
-            style: const TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        IconButton(
-          icon: Icon(
-            Icons.edit,
-            color: isOffline ? Colors.white24 : Colors.white70,
-            size: 20,
-          ),
-          onPressed: isOffline ? null : _editName,
-        ),
-      ],
     );
   }
 
@@ -219,7 +214,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         leading: Icon(icon, color: Colors.white),
         title: Text(title, style: const TextStyle(color: Colors.white)),
         trailing: const Icon(Icons.chevron_right, color: Colors.white54),
-        onTap: () {},
       ),
     );
   }
