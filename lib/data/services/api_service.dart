@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_application_1/data/models/device_model.dart';
 
 class ApiService {
@@ -14,6 +15,23 @@ class ApiService {
     ));
   }
 
+  Future<void> sendToFirebase(Map<String, dynamic> data) async {
+    try {
+      const String fireUrl = 
+          'https://smart-meteostation-flutter-default-rtdb.europe-west1.firebasedatabase.app/telemetry.json';
+      
+      final cleanDio = Dio(); 
+      
+      await cleanDio.put<dynamic>(
+        fireUrl, 
+        data: data,
+      );
+      
+      debugPrint('>>> Firebase: OK!');
+    } catch (e) {
+      debugPrint('>>> Firebase Error: $e');
+    }
+  }
 
   Future<void> registerUser(Map<String, dynamic> userData) async {
     await _dio.post<dynamic>('/users', data: userData);
@@ -23,7 +41,6 @@ class ApiService {
     try {
       final resp = await _dio.get<dynamic>('/users');
       final List<dynamic> users = resp.data as List<dynamic>;
-      
       for (var u in users) {
         if (u['email'] == email && u['password'] == password) {
           return u as Map<String, dynamic>;

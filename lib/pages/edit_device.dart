@@ -38,16 +38,13 @@ class _EditDeviceScreenState extends State<EditDeviceScreen> {
     );
     
     try {
-      // 1. Оновлюємо в хмарі
       await _api.updateDevice(updated);
-      // 2. Оновлюємо локально
       await _repo.updateDevice(updated);
       
       final mqttData = {'name': updated.name, 'location': updated.location};
       MqttService().publish('weather/config', jsonEncode(mqttData));
       if (mounted) Navigator.pop(context);
     } catch (e) {
-      // Якщо немає інету - можна заборонити редагування або видати помилку
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Update failed: No connection')));
