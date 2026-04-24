@@ -22,9 +22,7 @@ class ApiService {
     try {
       const String fireUrl = 'https://smart-meteostation-flutter-default-rtdb.'
           'europe-west1.firebasedatabase.app/telemetry.json';
-
-      final cleanDio = Dio();
-      await cleanDio.put<dynamic>(fireUrl, data: data);
+      await Dio().put<dynamic>(fireUrl, data: data);
     } catch (e) {
       debugPrint('Firebase Error: $e');
     }
@@ -65,17 +63,17 @@ class ApiService {
     final resp = await _dio.get<dynamic>('/devices');
     final list = resp.data as List<dynamic>;
     return list
-        .map((e) => DeviceModel.fromMap(e as Map<String, dynamic>))
+        .map((e) => DeviceModel.fromJson(e as Map<String, dynamic>)) // ЗМІНЕНО
         .toList();
   }
 
   Future<void> addDevice(DeviceModel device) async {
-    await _dio.post<dynamic>('/devices', data: device.toMap());
+    await _dio.post<dynamic>('/devices', data: device.toJson()); // ЗМІНЕНО
   }
 
   Future<void> updateDevice(DeviceModel device) async {
     final path = '/devices/${device.id}';
-    await _dio.put<dynamic>(path, data: device.toMap());
+    await _dio.put<dynamic>(path, data: device.toJson()); // ЗМІНЕНО
   }
 
   Future<void> deleteDevice(String id) async {
