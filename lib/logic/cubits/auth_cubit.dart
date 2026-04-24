@@ -2,57 +2,91 @@ import 'package:flutter_application_1/data/models/user_model.dart';
 import 'package:flutter_application_1/data/repositories/local_auth_repository.dart';
 import 'package:flutter_application_1/data/services/api_service.dart';
 import 'package:flutter_application_1/data/services/conectivity_service.dart';
+import 'package:flutter_application_1/logic/cubits/auth_state.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-
-abstract class AuthState {}
-
-class AuthInitial extends AuthState {}
-
-class AuthLoading extends AuthState {}
-
-class AuthAuthenticated extends AuthState {
-  final UserModel user;
-  AuthAuthenticated(this.user);
-}
-
-class AuthError extends AuthState {
-  final String message;
-  AuthError(this.message);
-}
 
 class AuthCubit extends Cubit<AuthState> {
   final ApiService _api = ApiService();
   final ConnectivityService _connectivity = ConnectivityService();
   final LocalAuthRepository _authRepo = LocalAuthRepository();
 
-  AuthCubit() : super(AuthInitial());
+  AuthCubit() : super(const AuthState());
 
   Future<void> login(String email, String password) async {
+    emit(state.copyWith(isLoading: true));
     try {
-      emit(AuthLoading());
-
-      // 1. Check Internet
-      final bool hasInternet = await _connectivity.hasConnection();
-      if (!hasInternet) {
-        emit(AuthError('No internet connection!'));
-        return;
+      if (!await _connectivity.hasConnection()) {
+        throw Exception('No internet connection!');
       }
 
-      // 2. API Login
       final userMap = await _api.loginUser(email, password);
-
       if (userMap != null) {
         final user = UserModel.fromJson(userMap);
-
-        // 3. Save to Local Repository (Auto-login logic)
         await _authRepo.login(email, password);
-
-        emit(AuthAuthenticated(user));
+        emit(state.copyWith(user: user, isLoading: false));
       } else {
-        emit(AuthError('Invalid credentials!'));
+        throw Exception('Invalid email or password!');
       }
     } catch (e) {
-      emit(AuthError('Login failed: ${e.toString()}'));
+      emit(state.copyWith(isLoading: false, errorMessage: e.toString()));
     }
+  }
+
+  Future<void> register(String name, String email, String password) async {
+    emit(state.copyWith(isLoading: true));
+    try {
+      if (!await _connectivity.hasConnection()) {
+        throw Exception('Registration requires internet!');
+      }
+
+      await _api.registerUser({
+        'fullName': name,
+        'email': email,
+        'password': password,
+      });
+
+      final newUser = UserModel(
+        fullName: name,
+        email: email,
+        password: password,
+      );
+      
+      await _authRepo.register(newUser);
+      emit(state.copyWith(isLoading: false));
+    } catch (e) {
+      emit(state.copyWith(isLoading: false, errorMessage: e.toString()));
+    }
+  }
+
+  Future<void> syncUserData() async {
+    try {
+      final apiData = await _api.getUserProfile();
+      final localUser = await _authRepo.getUserData();
+      
+      if (localUser != null) {
+        final updated = localUser.copyWith(
+          fullName: apiData['fullName'] as String? ?? localUser.fullName,
+          email: apiData['email'] as String? ?? localUser.email,
+        );
+        await _authRepo.register(updated);
+        emit(state.copyWith(user: updated));
+      }
+    } catch (_) {
+      final local = await _authRepo.getUserData();
+      if (local != null) emit(state.copyWith(user: local));
+    }
+  }
+
+  Future<void> updateName(String newName) async {
+    if (state.user != null) {
+      final updated = state.user!.copyWith(fullName: newName);
+      await _authRepo.register(updated);
+      emit(state.copyWith(user: updated));
+    }
+  }
+
+  void logout() {
+    _authRepo.logout();
+    emit(const AuthState(isLogout: true));
   }
 }
