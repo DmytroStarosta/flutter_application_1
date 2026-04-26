@@ -63,17 +63,17 @@ class ApiService {
     final resp = await _dio.get<dynamic>('/devices');
     final list = resp.data as List<dynamic>;
     return list
-        .map((e) => DeviceModel.fromJson(e as Map<String, dynamic>)) // ЗМІНЕНО
+        .map((e) => DeviceModel.fromJson(e as Map<String, dynamic>))
         .toList();
   }
 
   Future<void> addDevice(DeviceModel device) async {
-    await _dio.post<dynamic>('/devices', data: device.toJson()); // ЗМІНЕНО
+    await _dio.post<dynamic>('/devices', data: device.toJson());
   }
 
   Future<void> updateDevice(DeviceModel device) async {
     final path = '/devices/${device.id}';
-    await _dio.put<dynamic>(path, data: device.toJson()); // ЗМІНЕНО
+    await _dio.put<dynamic>(path, data: device.toJson());
   }
 
   Future<void> deleteDevice(String id) async {
