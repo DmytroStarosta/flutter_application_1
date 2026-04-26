@@ -9,6 +9,19 @@ class UserModel {
     required this.password,
   });
 
+  // Додаємо цей метод для зручного оновлення полів у Cubit
+  UserModel copyWith({
+    String? fullName,
+    String? email,
+    String? password,
+  }) {
+    return UserModel(
+      fullName: fullName ?? this.fullName,
+      email: email ?? this.email,
+      password: password ?? this.password,
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'fullName': fullName,

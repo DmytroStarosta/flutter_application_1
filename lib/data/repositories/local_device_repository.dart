@@ -4,6 +4,13 @@ import 'package:flutter_application_1/data/repositories/device_repository.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class LocalDeviceRepository implements DeviceRepository {
+  static final LocalDeviceRepository _instance = 
+      LocalDeviceRepository._internal();
+  
+  factory LocalDeviceRepository() => _instance;
+
+  LocalDeviceRepository._internal();
+
   static const String _storageKey = 'my_devices_list';
 
   @override
@@ -17,7 +24,7 @@ class LocalDeviceRepository implements DeviceRepository {
       final List<dynamic> decoded = jsonDecode(data) as List<dynamic>;
 
       return decoded.map((item) {
-        return DeviceModel.fromMap(item as Map<String, dynamic>);
+        return DeviceModel.fromJson(item as Map<String, dynamic>);
       }).toList();
     } catch (e) {
       return [];
@@ -27,8 +34,11 @@ class LocalDeviceRepository implements DeviceRepository {
   @override
   Future<void> addDevice(DeviceModel device) async {
     final devices = await getDevices();
-    devices.add(device);
-    await _saveToPrefs(devices);
+    
+    if (!devices.any((d) => d.id == device.id)) {
+      devices.add(device);
+      await _saveToPrefs(devices);
+    }
   }
 
   @override
@@ -51,7 +61,7 @@ class LocalDeviceRepository implements DeviceRepository {
   Future<void> _saveToPrefs(List<DeviceModel> devices) async {
     final prefs = await SharedPreferences.getInstance();
     final String encoded = jsonEncode(
-      devices.map((d) => d.toMap()).toList(),
+      devices.map((d) => d.toJson()).toList(),
     );
     await prefs.setString(_storageKey, encoded);
   }
