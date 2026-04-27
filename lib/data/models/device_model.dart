@@ -15,7 +15,26 @@ class DeviceModel {
     this.pressure = 0.0,
   });
 
-  Map<String, dynamic> toMap() {
+  // Метод для створення копії об'єкта зі зміненими полями
+  DeviceModel copyWith({
+    String? id,
+    String? name,
+    String? location,
+    double? temperature,
+    double? humidity,
+    double? pressure,
+  }) {
+    return DeviceModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      location: location ?? this.location,
+      temperature: temperature ?? this.temperature,
+      humidity: humidity ?? this.humidity,
+      pressure: pressure ?? this.pressure,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
     return {
       'id': id,
       'name': name,
@@ -26,7 +45,7 @@ class DeviceModel {
     };
   }
 
-  factory DeviceModel.fromMap(Map<String, dynamic> map) {
+  factory DeviceModel.fromJson(Map<String, dynamic> map) {
     return DeviceModel(
       id: (map['id'] ?? '') as String,
       name: (map['name'] ?? '') as String,

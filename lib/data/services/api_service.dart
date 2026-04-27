@@ -3,10 +3,13 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_application_1/data/models/device_model.dart';
 
 class ApiService {
+  static final ApiService _instance = ApiService._internal();
+  factory ApiService() => _instance;
+
   static const String _url = 'https://69e39c803327837a15535926.mockapi.io';
   final Dio _dio = Dio(BaseOptions(baseUrl: _url));
 
-  ApiService() {
+  ApiService._internal() {
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
         options.headers['Authorization'] = 'Bearer key-vlad-35';
@@ -17,19 +20,11 @@ class ApiService {
 
   Future<void> sendToFirebase(Map<String, dynamic> data) async {
     try {
-      const String fireUrl = 
-          'https://smart-meteostation-flutter-default-rtdb.europe-west1.firebasedatabase.app/telemetry.json';
-      
-      final cleanDio = Dio(); 
-      
-      await cleanDio.put<dynamic>(
-        fireUrl, 
-        data: data,
-      );
-      
-      debugPrint('>>> Firebase: OK!');
+      const String fireUrl = 'https://smart-meteostation-flutter-default-rtdb.'
+          'europe-west1.firebasedatabase.app/telemetry.json';
+      await Dio().put<dynamic>(fireUrl, data: data);
     } catch (e) {
-      debugPrint('>>> Firebase Error: $e');
+      debugPrint('Firebase Error: $e');
     }
   }
 
@@ -67,17 +62,18 @@ class ApiService {
   Future<List<DeviceModel>> fetchRemoteDevices() async {
     final resp = await _dio.get<dynamic>('/devices');
     final list = resp.data as List<dynamic>;
-    return list.map((e) => 
-        DeviceModel.fromMap(e as Map<String, dynamic>)).toList();
+    return list
+        .map((e) => DeviceModel.fromJson(e as Map<String, dynamic>))
+        .toList();
   }
 
   Future<void> addDevice(DeviceModel device) async {
-    await _dio.post<dynamic>('/devices', data: device.toMap());
+    await _dio.post<dynamic>('/devices', data: device.toJson());
   }
 
   Future<void> updateDevice(DeviceModel device) async {
     final path = '/devices/${device.id}';
-    await _dio.put<dynamic>(path, data: device.toMap());
+    await _dio.put<dynamic>(path, data: device.toJson());
   }
 
   Future<void> deleteDevice(String id) async {
