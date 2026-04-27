@@ -1,4 +1,6 @@
+import 'package:flashlight_plugin/flashlight_plugin.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_application_1/data/models/device_model.dart';
 import 'package:flutter_application_1/logic/cubits/device_cubit.dart';
 import 'package:flutter_application_1/logic/cubits/device_state.dart';
@@ -9,6 +11,22 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
+  void _showPlatformAlert(BuildContext context, String message) {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Platform Notice'),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('OK'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     context.read<DeviceCubit>().loadDevices();
@@ -16,7 +34,38 @@ class HomeScreen extends StatelessWidget {
     return Scaffold(
       extendBodyBehindAppBar: true,
       appBar: AppBar(
-        title: const Text('Home', style: TextStyle(color: Colors.white)),
+        title: GestureDetector(
+          onLongPress: () async {
+            try {
+              await FlashlightPlugin.toggleFlash(true);
+
+              if (!context.mounted) return;
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Text(
+                    'Secret Flashlight Activated!',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  backgroundColor: const Color.fromARGB(255, 0, 146, 243),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  duration: const Duration(seconds: 2),
+                ),
+              );
+
+              await Future<void>.delayed(const Duration(seconds: 2));
+              
+              await FlashlightPlugin.toggleFlash(false);
+            } on PlatformException catch (e) {
+              if (!context.mounted) return;
+              _showPlatformAlert(context, e.message ?? 'Flashlight error');
+            }
+          },
+          child: const Text('Home', style: TextStyle(color: Colors.white)),
+        ),
         backgroundColor: Colors.transparent,
         elevation: 0,
         iconTheme: const IconThemeData(color: Colors.white),
