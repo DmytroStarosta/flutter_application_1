@@ -39,11 +39,9 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
-          // Перевірка успішної авторизації через наявність об'єкта user
           if (state.user != null) {
             Navigator.pushReplacementNamed(context, '/home');
           } 
-          // Перевірка помилки через поле errorMessage
           else if (state.errorMessage != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(

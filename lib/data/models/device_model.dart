@@ -15,7 +15,6 @@ class DeviceModel {
     this.pressure = 0.0,
   });
 
-  // Метод для створення копії об'єкта зі зміненими полями
   DeviceModel copyWith({
     String? id,
     String? name,

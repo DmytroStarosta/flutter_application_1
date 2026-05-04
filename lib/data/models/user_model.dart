@@ -9,7 +9,6 @@ class UserModel {
     required this.password,
   });
 
-  // Додаємо цей метод для зручного оновлення полів у Cubit
   UserModel copyWith({
     String? fullName,
     String? email,

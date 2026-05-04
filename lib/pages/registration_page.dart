@@ -44,7 +44,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return Scaffold(
       body: BlocListener<AuthCubit, AuthState>(
         listener: (context, state) {
-          // Якщо завантаження закінчилось, помилок немає і дані введено — успіх
           if (!state.isLoading && 
               state.errorMessage == null && 
               _emailController.text.isNotEmpty) {
@@ -53,7 +52,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             );
             Navigator.pushReplacementNamed(context, '/login');
           } 
-          // Якщо є повідомлення про помилку
           else if (state.errorMessage != null) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.errorMessage!)),
