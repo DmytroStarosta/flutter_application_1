@@ -33,6 +33,8 @@ dependencies:
   shared_preferences: ^2.3.5
   connectivity_plus: ^6.0.0
   mqtt_client: ^10.0.0
+  sensors_plus: ^6.1.1
+  firebase_database: ^11.0.2
   flashlight_plugin:
     git:
       url: https://github.com/DmytroStarosta/flashlight_plugin.git
@@ -44,6 +46,9 @@ dependencies:
   cupertino_icons: ^1.0.8
   dio: ^5.9.2
   flutter_bloc: ^9.1.1
+  firebase_core: ^3.15.2
+  intl: ^0.20.2
+  shake: ^3.0.0
 
 dev_dependencies:
   flutter_test:

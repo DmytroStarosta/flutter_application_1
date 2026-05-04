@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "792593280306",
+    "firebase_url": "https://smart-meteostation-flutter-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "smart-meteostation-flutter",
+    "storage_bucket": "smart-meteostation-flutter.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:792593280306:android:7de88aa9cd63bfeb183b2b",
+        "android_client_info": {
+          "package_name": "com.example.flutter_application_1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAORXnmSMc7IFkUXpKCwxEW9vgDfVZ_ZUM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

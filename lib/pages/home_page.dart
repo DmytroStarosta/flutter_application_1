@@ -4,12 +4,30 @@ import 'package:flutter/services.dart';
 import 'package:flutter_application_1/data/models/device_model.dart';
 import 'package:flutter_application_1/logic/cubits/device_cubit.dart';
 import 'package:flutter_application_1/logic/cubits/device_state.dart';
+import 'package:flutter_application_1/logic/cubits/shake_cubit.dart';
 import 'package:flutter_application_1/widgets/device_button.dart';
 import 'package:flutter_application_1/widgets/sensor_grid.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:shake/shake.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  late ShakeDetector detector;
+
+  @override
+  void initState() {
+    super.initState();
+    detector = ShakeDetector.autoStart(onPhoneShake: (_) {
+      context.read<ShakeCubit>().shake();
+    });
+
+  }
 
   void _showPlatformAlert(BuildContext context, String message) {
     showDialog<void>(
@@ -26,6 +44,7 @@ class HomeScreen extends StatelessWidget {
       ),
     );
   }
+
 
   @override
   Widget build(BuildContext context) {
